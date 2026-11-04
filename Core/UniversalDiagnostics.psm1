@@ -1,4 +1,4 @@
-function Get-WinFixObjectPathValue {
+﻿function Get-WinFixObjectPathValue {
     param([Parameter(Mandatory)][object]$InputObject,[Parameter(Mandatory)][string]$Path)
     $value = $InputObject
     foreach ($part in $Path.Split('.')) {
@@ -68,7 +68,7 @@ function Get-WinFixRules {
 
 function Invoke-WinFixRules {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][object]$Context,[Parameter(Mandatory)][object[]]$Rules)
+    param([Parameter(Mandatory)][object]$Context,[Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Rules)
     $matched = New-Object 'System.Collections.Generic.List[object]'
     foreach ($rule in $Rules) {
         $checks = @($rule.evidence)
@@ -347,7 +347,7 @@ function Invoke-WinFixUniversalAnalysis {
         [AllowEmptyCollection()][object[]]$Baseline = @()
     )
     $summary = $Context.Summary
-    $rules = Get-WinFixRules -RulesPath $RulesPath -WindowsBuild ([string]$summary.BuildNumber)
+    $rules = @(Get-WinFixRules -RulesPath $RulesPath -WindowsBuild ([string]$summary.BuildNumber))
     $ruleFindings = @(Invoke-WinFixRules -Context $Context -Rules $rules)
     $knowledge = Get-WinFixKnowledgeEntries -Path $KnowledgePath -WindowsVersion ([string]$summary.Version) -WindowsBuild ([string]$summary.BuildNumber)
     $anomalies = @(Get-WinFixAnomalyFindings -CurrentSummary $summary -Baseline $Baseline)

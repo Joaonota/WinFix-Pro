@@ -98,6 +98,8 @@ try {
     $unknown = Invoke-WinFixUniversalAnalysis -Context $unknownContext -RulesPath $rulesPath -KnowledgePath $knowledgePath -PluginDirectory (Join-Path $root 'Plugins') -Symptoms @('System is slow without an error code')
     Assert-True ($unknown.Status -eq 'Inconclusive' -and $unknown.Hypotheses[0].Confidence -eq 0 -and $unknown.Hypotheses[0].Status -eq 'Inconclusive') 'Uncatalogued symptom with no evidence is explicitly inconclusive'
     Assert-True ($unknown.UnknownSymptoms.Count -eq 1 -and $unknown.KnowledgeMatches.Count -eq 0) 'Unmatched symptoms are surfaced rather than assigned a fabricated known cause'
+    $unsupportedBuild = Invoke-WinFixUniversalAnalysis -Context $unknownContext -RulesPath $rulesVersionPath -KnowledgePath $knowledgePath -PluginDirectory (Join-Path $root 'Plugins') -Symptoms @('Unlisted issue on newer build')
+    Assert-True ($unsupportedBuild.Status -eq 'Inconclusive' -and $unsupportedBuild.RuleFindings.Count -eq 0) 'No compatible rules on an unsupported future build produce an inconclusive analysis'
 
     $plan = @(New-WinFixTroubleshootingPlan -Hypotheses @([pscustomobject]@{Id='slow-system';RecommendedTests=@('Inspect storage wait times')}))
     $completed = Add-WinFixTestResult -Plan $plan -TestId $plan[0].Id -Result NotConfirmed -Evidence 'No storage latency observed during the reported interval.'

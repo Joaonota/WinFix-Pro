@@ -1,4 +1,4 @@
-function Read-WinFixJsonStore {
+﻿function Read-WinFixJsonStore {
     param([Parameter(Mandatory)][string]$Path,[Parameter(Mandatory)][int]$SchemaVersion)
     if (-not (Test-Path -LiteralPath $Path)) {
         return [pscustomobject]@{schemaVersion=$SchemaVersion;entries=@()}

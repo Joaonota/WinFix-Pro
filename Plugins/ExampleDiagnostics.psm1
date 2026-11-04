@@ -1,4 +1,4 @@
-function Invoke-WinFixDiagnosticPlugin {
+﻿function Invoke-WinFixDiagnosticPlugin {
     [CmdletBinding()]
     param([Parameter(Mandatory)][object]$Context)
     if (-not $Context.Summary -or -not $Context.PSObject.Properties['Findings']) {

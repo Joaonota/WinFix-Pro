@@ -265,7 +265,7 @@ $Controls.btnRecordCase.Add_Click({
     $evidenceText = "Findings=$($analysis.EvidenceSummary.FindingsCount); Events=$($analysis.EvidenceSummary.EventsCount); PnP problem devices=$($analysis.EvidenceSummary.HardwareDevicesWithProblems); collection=$($analysis.EvidenceSummary.DataCompleteness)"
     try {
         $case = Add-WinFixCase -CasesPath (Join-Path $script:DataRoot 'Knowledge\cases.json') `
-            -Symptoms ([string]$Controls.txtSymptoms.Text) -Outcome ([string]$Controls.txtCaseOutcome.Text) `
+            -Symptoms (@($analysis.Symptoms) -join '; ') -Outcome ([string]$Controls.txtCaseOutcome.Text) `
             -EvidenceSummary $evidenceText -Hypotheses ($hypothesisText -join '; ') `
             -Tests ([string]$Controls.txtCaseTests.Text) -Status ([string]$Controls.cmbCaseStatus.SelectedValue) `
             -WindowsVersion ([string]$script:LastUniversal.Context.Summary.Version) `
@@ -315,7 +315,7 @@ $Controls.btnImportKnowledge.Add_Click({
         $imported = @(Import-WinFixKnowledgeBundle -SourcePath $dialog.FileName `
             -KnowledgePath (Join-Path $script:DataRoot 'Knowledge\knowledge.json') -ImportedBy 'Local technician')
         $Controls.txtCaseId.Text = "Imported $($imported.Count) knowledge candidate(s). All require review before matching."
-        Add-UiMessage "Imported $($imported.Count) local knowledge candidate(s) from $($dialog.FileName)" 'AUDIT'
+        Add-UiMessage "Imported $($imported.Count) local knowledge candidate(s) from $([IO.Path]::GetFileName($dialog.FileName))" 'AUDIT'
     } catch {Add-UiMessage "Could not import knowledge bundle: $($_.Exception.Message)" 'ERROR'; [System.Windows.MessageBox]::Show($_.Exception.Message,'Knowledge import error','OK','Error') | Out-Null}
 })
 $Controls.btnRepair.Add_Click({
