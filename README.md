@@ -10,6 +10,8 @@ The application requests UAC elevation at startup. If elevation is declined, rea
 
 The GUI provides Dashboard, Universal Diagnostics, hardware, performance, network, Windows health/update, security, services, drivers, common issues, knowledge, unknown-problem analysis, repair, reports, history, and settings views. Repair confirmation requires a completed diagnostic in the current session, describes the proposed operation and risk, and runs only an explicitly selected allow-listed action. A completed repair is not presented as proof of resolution; review its output and run a follow-up diagnostic.
 
+The Dashboard runs a real Quick Scan at startup and presents the latest collected evidence, health status, issue counts, component results, recommendations, and diagnostic time. `Unknown` and `Not Tested` remain distinct from `Healthy`; unavailable or failed measurements are surfaced and do not reduce the evidence-based score. Use Quick Scan or Full System Scan to refresh the dashboard, open issue details for evidence and recommendations, and export a report. Light/dark theme preference is available in Settings.
+
 Build a release executable from this directory with the .NET 10 SDK:
 
 ```powershell
@@ -56,7 +58,7 @@ Diagnostic evidence is processed locally and is not transmitted to external serv
 - Root-cause hypotheses are ranked observations/correlations, not proof. Missing data is reported as a collection error, not treated as a negative result. Unknown symptoms without supporting evidence are explicitly marked inconclusive.
 - Knowledge matching is local text matching with compatibility and expiry checks, not a live Microsoft Q&A/forum search. The application does not download diagnostic data or automatically scrape sources. Knowledge JSON contains suggestions only; it cannot encode or run commands.
 - Profiles currently use the bundled `Profiles\default.json`; custom profile selection is not exposed in the UI.
-- Service inventory is read-only. Service changes, driver installation/rollback, Update policy changes, destructive disk operations, repair backups/rollback, persistent graphs, theme switching and localization are not implemented.
+- Service inventory is read-only. Service changes, driver installation/rollback, Update policy changes, destructive disk operations, repair backups/rollback, persistent graphs and localization are not implemented.
 - Health scoring uses only measured diagnostics in this release; unavailable checks do not receive inferred scores.
 
 ## Tests
@@ -66,9 +68,12 @@ From this directory:
 ```powershell
 .\Tests\Run-Tests.ps1
 dotnet run --project .\Tests\WinFixPro.App.Tests\WinFixPro.App.Tests.csproj -c Release
+.\Tests\WinFixPro.App.Tests\Run-UiSmoke.ps1
 ```
 
 The PowerShell test script checks live OS/hardware discovery, rules and version constraints, anomaly baselines, repeated-event correlation, contradictory hypotheses, unknown/inconclusive symptoms, adaptive test de-duplication, plugin compatibility/contract, case redaction, knowledge review/import/expiry, repair confirmation/simulation guards, and legacy report formats. The C# host tests the operation allow-list, SQLite history/settings, HTML/CSV/JSON/UTF-8 report behavior, embedded PowerShell worker, and live universal analysis. Neither test suite executes real system repairs.
+
+The UI smoke test requires an interactive Windows desktop. It exercises native window controls, movement/resizing, every sidebar destination, Quick Scan and Full System Scan, issue details, report export, and clean close.
 
 ## Local data
 

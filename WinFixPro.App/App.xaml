@@ -10,18 +10,32 @@
         <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
         <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F8FAFC" />
         <SolidColorBrush x:Key="SecondaryTextBrush" Color="#94A3B8" />
+        <SolidColorBrush x:Key="InputBackgroundBrush" Color="#0B1120" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#263449" />
+        <SolidColorBrush x:Key="ActionButtonBrush" Color="#263449" />
         <Style TargetType="Button">
-            <Setter Property="Foreground" Value="#F8FAFC" />
-            <Setter Property="Background" Value="#263449" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="Background" Value="{DynamicResource ActionButtonBrush}" />
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="12,8" />
-            <Setter Property="Margin" Value="0,3" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Margin" Value="0,2,6,2" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontFamily" Value="Segoe UI" />
         </Style>
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI" />
-            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="Padding" Value="7,5" />
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+            <Setter Property="Padding" Value="7,4" />
         </Style>
     </Application.Resources>
 </Application>

@@ -15,6 +15,56 @@ Check(OperationCatalog.TryGet("Repair:SfcScan", out var repair) && repair.IsRepa
     "repair operations require administrator authorization");
 Check(!OperationCatalog.TryGet("Repair:Unknown", out _), "allow-list rejects an unknown repair");
 
+var notRun = DashboardHealthAnalyzer.Analyze(null);
+Check(notRun.OverallStatus == "Unknown" && notRun.Score is null,
+    "dashboard reports unknown and no score before evidence exists");
+Check(notRun.Components.Any(component => component.Name == "Windows Integrity" && component.Status == "Not Tested"),
+    "an unrun integrity check is never classified as healthy");
+
+var diagnosticJson = """
+    {
+      "CreatedAt":"2026-11-04T10:00:00+00:00",
+      "Summary":{"SystemDrive":"C:","DiskFreeGB":1.2,"DiskSizeGB":512,"CpuLoadPercent":12.5,"MemoryUsedPercent":43.0},
+      "Findings":[
+        {"Area":"System","Severity":"Info","Finding":"Windows detected","Evidence":"Windows 11"},
+        {"Area":"Storage","Severity":"Critical","Finding":"Low free space","Evidence":"1.2 GB free","Recommendation":"Review disk usage."},
+        {"Area":"Services","Severity":"Info","Finding":"Service EventLog","Evidence":"Running"},
+        {"Area":"Services","Severity":"Info","Finding":"Service Winmgmt","Evidence":"Running"},
+        {"Area":"Services","Severity":"Info","Finding":"Service RpcSs","Evidence":"Running"}
+      ],
+      "Health":{"Score":65}
+    }
+    """;
+var diagnostic = new OperationResult("Diagnostics", "Completed", diagnosticJson, "test", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+var snapshot = DashboardHealthAnalyzer.Analyze(diagnostic);
+Check(snapshot.OverallStatus == "Critical" && snapshot.CriticalCount == 1,
+    "critical evidence determines overall dashboard status and issue count");
+Check(snapshot.Score == 65 && snapshot.ScoreFactors.Count == 1,
+    "score is calculated from measured findings and explains the affecting issue");
+Check(snapshot.Components.Any(component => component.Name == "Storage" && component.Status == "Critical"),
+    "storage health is derived from actual free-space evidence");
+Check(snapshot.Components.Any(component => component.Name == "Network" && component.Status == "Not Tested"),
+    "uncollected network evidence remains not tested");
+
+var incompleteJson = """
+    {
+      "Summary":{"CpuLoadPercent":null,"MemoryUsedPercent":null},
+      "Findings":[{"Area":"Services","Severity":"Low","Finding":"Não foi possível consultar o serviço X","Evidence":"Access denied"}]
+    }
+    """;
+var incomplete = DashboardHealthAnalyzer.Analyze(
+    new OperationResult("Diagnostics", "Completed", incompleteJson, "test", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+Check(incomplete.Score is null && incomplete.ErrorCount == 0 &&
+      incomplete.Issues.Any(issue => issue.Severity == "Unknown"),
+    "unavailable measurements are visible but do not penalize the evidence-based score");
+Check(incomplete.Components.Any(component => component.Name == "Services" && component.Status == "Unknown"),
+    "a failed service query is unknown, not healthy or a confirmed warning");
+var failed = DashboardHealthAnalyzer.Analyze(
+    new OperationResult("Universal", "Failed", "", "worker unavailable", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+    "worker unavailable");
+Check(failed.OverallStatus == "Unknown" && failed.Components.All(component => component.Status == "Unknown"),
+    "a failed diagnostic is surfaced and cannot leave stale components classified healthy");
+
 var root = Path.Combine(Path.GetTempPath(), $"WinFixPro.App.Tests.{Guid.NewGuid():N}");
 Directory.CreateDirectory(root);
 try
@@ -65,6 +115,11 @@ try
         universalJson.RootElement.TryGetProperty("Analysis", out var analysis) &&
         analysis.TryGetProperty("Status", out _),
         "embedded worker completes evidence-based universal analysis");
+    var liveDashboard = DashboardHealthAnalyzer.Analyze(universalResult);
+    Check(liveDashboard.Components.Count == 9 && liveDashboard.LastDiagnostic is not null,
+        "live universal result populates all component health cards with a real timestamp");
+    Check(liveDashboard.Components.Any(component => component.Name == "Windows Integrity" && component.Status == "Not Tested"),
+        "universal evidence does not claim integrity testing that was not performed");
 }
 finally
 {

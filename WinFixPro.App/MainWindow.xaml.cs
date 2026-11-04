@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.Data.Sqlite;
 using Microsoft.Win32;
 
@@ -24,8 +26,12 @@ public partial class MainWindow : Window
     private readonly HistoryStore _history;
     private CancellationTokenSource? _operationCancellation;
     private OperationResult? _lastResult;
+    private OperationResult? _lastDiagnosticResult;
+    private OperationResult? _dashboardResult;
+    private string? _dashboardFailure;
     private string _currentSection = "Dashboard";
     private bool _operationRunning;
+    private bool _isLightTheme;
 
     public MainWindow(bool isAdministrator, bool elevationCancelled)
     {
@@ -38,9 +44,7 @@ public partial class MainWindow : Window
 
         ComputerNameText.Text = Environment.MachineName;
         PrivilegeText.Text = isAdministrator ? "Administrator" : "Standard user - limited repairs";
-        PrivilegeText.Foreground = isAdministrator
-            ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(34, 197, 94))
-            : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 158, 11));
+        PrivilegeText.Foreground = isAdministrator ? StatusBrush("Healthy") : StatusBrush("Warning");
         EngineText.Text = $"Internal engine: {_engine.EngineVersion}\nData: %LOCALAPPDATA%\\WinFixPro\\0.2";
         FooterText.Text = elevationCancelled
             ? "UAC declined: diagnostics remain available; administrative repairs are disabled."
@@ -49,6 +53,12 @@ public partial class MainWindow : Window
         BuildNavigation();
         Navigate("Dashboard");
         CancelButton.Click += (_, _) => CancelCurrentOperation();
+        FullScanButton.Click += async (_, _) => await RunDashboardScanAsync("Universal");
+        QuickScanButton.Click += async (_, _) => await RunDashboardScanAsync("Diagnostics");
+        AdvancedScanButton.Click += async (_, _) => await RunDashboardScanAsync("Universal", NewDashboardSymptomsPayload());
+        ViewProblemsButton.Click += (_, _) => ProblemsHeading.BringIntoView();
+        DashboardReportButton.Click += async (_, _) => await ExportReportAsync("HTML");
+        Loaded += async (_, _) => await InitializeDashboardAsync();
         Closing += (_, _) => _operationCancellation?.Cancel();
     }
 
@@ -61,12 +71,14 @@ public partial class MainWindow : Window
                 Content = section,
                 Tag = section,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
-                Padding = new Thickness(10, 8, 8, 8),
+                Padding = new Thickness(9, 7, 7, 7),
                 Margin = new Thickness(0, 1, 0, 1),
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(17, 24, 39))
+                Background = ThemeBrush("PanelBrush"),
+                ToolTip = section
             };
+            AutomationProperties.SetName(button, section);
             button.Click += (_, _) => Navigate((string)button.Tag);
-            NavigationItems.Items.Add(button);
+            NavigationItems.Children.Add(button);
         }
     }
 
@@ -74,6 +86,12 @@ public partial class MainWindow : Window
     {
         if (_operationRunning) return;
         _currentSection = section;
+        foreach (var item in NavigationItems.Children.OfType<Button>())
+        {
+            var selected = string.Equals(item.Tag as string, section, StringComparison.Ordinal);
+            item.Background = ThemeBrush(selected ? "AccentBrush" : "PanelBrush");
+            item.Foreground = selected ? Brushes.White : ThemeBrush("PrimaryTextBrush");
+        }
         PageTitle.Text = section;
         PageDescription.Text = section switch
         {
@@ -86,7 +104,361 @@ public partial class MainWindow : Window
             _ => "Windows Diagnostic & Repair Toolkit"
         };
         ActionPanel.Children.Clear();
-        AddActions(section);
+        DashboardScroll.Visibility = section == "Dashboard" ? Visibility.Visible : Visibility.Collapsed;
+        DetailScroll.Visibility = section == "Dashboard" ? Visibility.Collapsed : Visibility.Visible;
+        if (section != "Dashboard")
+            AddActions(section);
+        RenderDashboard();
+    }
+
+    private async Task InitializeDashboardAsync()
+    {
+        try
+        {
+            var records = await _history.GetRecentAsync(200);
+            var latest = records.FirstOrDefault(record =>
+                record.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) &&
+                record.Operation is "Diagnostics" or "Universal");
+            if (latest is not null)
+            {
+                _lastDiagnosticResult = new OperationResult(
+                    latest.Operation, latest.Status, latest.Json, latest.Summary, latest.CreatedAt, latest.CreatedAt);
+                _dashboardResult = _lastDiagnosticResult;
+                RenderDashboard();
+            }
+        }
+        catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException)
+        {
+            _dashboardFailure = $"Local diagnostic history could not be loaded: {ex.Message}";
+            RenderDashboard();
+        }
+
+        try
+        {
+            var savedTheme = await _history.GetSettingAsync("Theme");
+            if (savedTheme is "Light" or "Dark")
+            {
+                _isLightTheme = savedTheme == "Light";
+                ApplyTheme();
+                Navigate(_currentSection);
+            }
+        }
+        catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException)
+        {
+            FooterText.Text = $"Theme preference could not be loaded: {ex.Message}";
+        }
+
+        await RunDashboardScanAsync("Diagnostics");
+    }
+
+    private PowerShellPayload NewDashboardSymptomsPayload() => new()
+    {
+        Symptoms = DashboardSymptomsText.Text.Split(
+            ['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(20).ToArray()
+    };
+
+    private async Task RunDashboardScanAsync(string operation, PowerShellPayload? payload = null)
+    {
+        _dashboardFailure = null;
+        StatusText.Text = $"Running {OperationCatalog.Operations[operation].Title}...";
+        await RunOperationAsync(operation, payload ?? new PowerShellPayload());
+    }
+
+    private void RenderDashboard()
+    {
+        if (!IsLoaded && DashboardStatusText is null) return;
+        var snapshot = DashboardHealthAnalyzer.Analyze(_dashboardResult, _dashboardFailure);
+        DashboardStatusText.Text = snapshot.OverallStatus;
+        DashboardStatusText.Foreground = StatusBrush(snapshot.OverallStatus);
+        DashboardStatusMessage.Text = snapshot.StatusMessage;
+        DashboardLastDiagnosticText.Text = snapshot.LastDiagnostic is { } date
+            ? $"Last diagnostic: {date.ToLocalTime():g}"
+            : "Last diagnostic: Never";
+        DashboardScoreText.Text = snapshot.Score?.ToString() ?? "--";
+        DashboardScoreText.Foreground = snapshot.Score is null
+            ? StatusBrush("Unknown")
+            : snapshot.Score < 50 ? StatusBrush("Critical") : snapshot.Score < 75 ? StatusBrush("Warning") : StatusBrush("Healthy");
+        DashboardScoreLabel.Text = snapshot.Score switch
+        {
+            null => "Not available",
+            >= 90 => "Excellent",
+            >= 75 => "Good",
+            >= 50 => "Needs attention",
+            _ => "Critical"
+        };
+        CriticalCountText.Text = snapshot.CriticalCount.ToString();
+        ErrorCountText.Text = snapshot.ErrorCount.ToString();
+        WarningCountText.Text = $"{snapshot.WarningCount} warnings";
+        PendingRepairsText.Text = $"{snapshot.PendingRepairs} pending repairs";
+        DashboardFailureBanner.Visibility = string.IsNullOrWhiteSpace(_dashboardFailure)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        DashboardFailureText.Text = _dashboardFailure ?? "";
+
+        ComponentPanel.Children.Clear();
+        foreach (var component in snapshot.Components)
+            ComponentPanel.Children.Add(BuildComponentCard(component));
+
+        ProblemsPanel.Children.Clear();
+        foreach (var issue in snapshot.Issues)
+            ProblemsPanel.Children.Add(BuildIssueCard(issue));
+        ProblemCountLabel.Text = $"{snapshot.Issues.Count} item(s)";
+        NoProblemsCard.Visibility = snapshot.Issues.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        NoProblemsText.Text = _dashboardResult is null || _dashboardResult.Status != "Completed"
+            ? "Run a scan to assess system health. Untested and unavailable components remain Unknown."
+            : snapshot.Components.Any(component => component.Status is "Unknown" or "Not Tested")
+                ? "No actionable problems were detected in the checks that ran. Untested or unavailable components are not classified as healthy."
+                : "No problems were detected in the completed checks.";
+
+        ScoreFactorsText.Text = snapshot.ScoreFactors.Count == 0
+            ? "No measured issue affected the score. Unavailable and untested areas are excluded; the score is not a claim that every component is healthy."
+            : $"Score uses observed findings only (Low −5, Medium −12, High −22, Critical −35; minimum 0). " +
+              $"Unavailable checks are excluded.{Environment.NewLine}{string.Join(Environment.NewLine, snapshot.ScoreFactors)}";
+    }
+
+    private Border BuildComponentCard(ComponentHealth component)
+    {
+        var border = new Border
+        {
+            Width = 286,
+            MaxWidth = 380,
+            Background = ThemeBrush("CardBrush"),
+            BorderBrush = StatusBrush(component.Status),
+            BorderThickness = new Thickness(1, 1, 1, 3),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 8, 8)
+        };
+        var panel = new StackPanel();
+        var titleLine = new DockPanel();
+        var status = new TextBlock
+        {
+            Text = component.Status,
+            Foreground = StatusBrush(component.Status),
+            FontSize = 10,
+            FontWeight = FontWeights.SemiBold,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        DockPanel.SetDock(status, Dock.Right);
+        titleLine.Children.Add(status);
+        titleLine.Children.Add(new TextBlock
+        {
+            Text = component.Name,
+            FontWeight = FontWeights.SemiBold,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            Margin = new Thickness(0, 0, 8, 0)
+        });
+        panel.Children.Add(titleLine);
+        panel.Children.Add(new TextBlock
+        {
+            Text = component.Result,
+            Foreground = ThemeBrush("SecondaryTextBrush"),
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 10,
+            Margin = new Thickness(0, 5, 0, 3)
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"Last checked: {component.LastChecked}",
+            Foreground = ThemeBrush("SecondaryTextBrush"),
+            FontSize = 9
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = $"Recommended: {component.Recommendation}",
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 9,
+            Margin = new Thickness(0, 5, 0, 4)
+        });
+        var details = new Button { Content = "Details", Padding = new Thickness(8, 4, 8, 4), HorizontalAlignment = HorizontalAlignment.Left };
+        details.Click += (_, _) => ShowDetails(component.Name, component.Details + Environment.NewLine + Environment.NewLine +
+            $"Recommendation: {component.Recommendation}");
+        panel.Children.Add(details);
+        border.Child = panel;
+        return border;
+    }
+
+    private Border BuildIssueCard(DashboardIssue issue)
+    {
+        var border = new Border
+        {
+            Background = ThemeBrush("PanelBrush"),
+            BorderBrush = StatusBrush(issue.Severity),
+            BorderThickness = new Thickness(3, 0, 0, 0),
+            CornerRadius = new CornerRadius(7),
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 7)
+        };
+        var content = new StackPanel();
+        var heading = new DockPanel();
+        var severity = new TextBlock
+        {
+            Text = issue.Severity.ToUpperInvariant(),
+            Foreground = StatusBrush(issue.Severity),
+            FontSize = 9,
+            FontWeight = FontWeights.Bold,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        DockPanel.SetDock(severity, Dock.Right);
+        heading.Children.Add(severity);
+        heading.Children.Add(new TextBlock { Text = issue.Title, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+        content.Children.Add(heading);
+        content.Children.Add(new TextBlock
+        {
+            Text = $"{issue.Area}: {issue.Description}",
+            Foreground = ThemeBrush("SecondaryTextBrush"),
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 10,
+            Margin = new Thickness(0, 4, 0, 2)
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = $"Evidence: {issue.Evidence}",
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 10
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = $"Possible cause: {issue.PossibleCause}",
+            Foreground = ThemeBrush("SecondaryTextBrush"),
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 10,
+            Margin = new Thickness(0, 2, 0, 0)
+        });
+        content.Children.Add(new TextBlock
+        {
+            Text = $"Recommended: {issue.Recommendation}",
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 10,
+            Margin = new Thickness(0, 2, 0, 4)
+        });
+        var actions = new WrapPanel();
+        var details = new Button { Content = "Details", Padding = new Thickness(8, 4, 8, 4) };
+        details.Click += (_, _) => ShowDetails(issue.Title,
+            $"Severity: {issue.Severity}{Environment.NewLine}Area: {issue.Area}{Environment.NewLine}" +
+            $"Description: {issue.Description}{Environment.NewLine}{Environment.NewLine}" +
+            $"Evidence: {issue.Evidence}{Environment.NewLine}{Environment.NewLine}" +
+            $"Possible cause: {issue.PossibleCause}{Environment.NewLine}{Environment.NewLine}" +
+            $"Recommended solution: {issue.Recommendation}");
+        actions.Children.Add(details);
+        var investigate = new Button { Content = "Investigate", Padding = new Thickness(8, 4, 8, 4) };
+        investigate.Click += (_, _) => NavigateForArea(issue.Area);
+        actions.Children.Add(investigate);
+        if (issue.RepairId is not null && _isAdministrator)
+        {
+            var repair = new Button { Content = $"Review repair: {OperationCatalog.Operations[$"Repair:{issue.RepairId}"].Title}", Padding = new Thickness(8, 4, 8, 4) };
+            repair.Click += async (_, _) => await ConfirmAndRunRepairAsync(issue.RepairId);
+            actions.Children.Add(repair);
+        }
+        content.Children.Add(actions);
+        border.Child = content;
+        return border;
+    }
+
+    private void NavigateForArea(string area)
+    {
+        var section = area.ToLowerInvariant() switch
+        {
+            "storage" or "system" or "events" or "operatingsystem" => "Windows Health",
+            "hardware" or "drivers" => "Hardware Diagnostics",
+            "performance" or "behavioral anomaly" => "Performance Analyzer",
+            "network" => "Network Diagnostics",
+            "security" => "Security",
+            "services" => "Services",
+            "windows update" => "Windows Update",
+            _ => "Universal Diagnostics"
+        };
+        Navigate(section);
+    }
+
+    private void ShowDetails(string title, string details)
+    {
+        var workArea = SystemParameters.WorkArea;
+        var dialog = new Window
+        {
+            Title = title,
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            WindowStyle = WindowStyle.SingleBorderWindow,
+            ResizeMode = ResizeMode.CanResize,
+            ShowInTaskbar = false,
+            Width = Math.Min(760, workArea.Width - 40),
+            Height = Math.Min(580, workArea.Height - 40),
+            MinWidth = Math.Min(420, workArea.Width - 40),
+            MinHeight = Math.Min(320, workArea.Height - 40),
+            Background = ThemeBrush("BackgroundBrush"),
+            Foreground = ThemeBrush("PrimaryTextBrush")
+        };
+        var text = new TextBlock
+        {
+            Text = details,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(14),
+            Foreground = ThemeBrush("PrimaryTextBrush")
+        };
+        dialog.Content = new ScrollViewer
+        {
+            Content = text,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+        };
+        dialog.ShowDialog();
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        _isLightTheme = !_isLightTheme;
+        ApplyTheme();
+        try
+        {
+            await _history.SetSettingAsync("Theme", _isLightTheme ? "Light" : "Dark");
+        }
+        catch (Exception ex) when (ex is SqliteException or IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show($"The theme changed, but the preference could not be saved.\n\n{ex.Message}",
+                "Theme preference", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        Navigate(_currentSection);
+    }
+
+    private void ApplyTheme()
+    {
+        var colors = _isLightTheme
+            ? new Dictionary<string, string>
+            {
+                ["BackgroundBrush"] = "#F1F5F9", ["PanelBrush"] = "#FFFFFF", ["CardBrush"] = "#E2E8F0",
+                ["PrimaryTextBrush"] = "#0F172A", ["SecondaryTextBrush"] = "#475569",
+                ["InputBackgroundBrush"] = "#FFFFFF", ["BorderBrush"] = "#CBD5E1", ["ActionButtonBrush"] = "#CBD5E1"
+            }
+            : new Dictionary<string, string>
+            {
+                ["BackgroundBrush"] = "#0B1120", ["PanelBrush"] = "#111827", ["CardBrush"] = "#172235",
+                ["PrimaryTextBrush"] = "#F8FAFC", ["SecondaryTextBrush"] = "#94A3B8",
+                ["InputBackgroundBrush"] = "#0B1120", ["BorderBrush"] = "#263449", ["ActionButtonBrush"] = "#263449"
+            };
+        foreach (var (key, value) in colors)
+            ((SolidColorBrush)Application.Current.Resources[key]).Color = (Color)ColorConverter.ConvertFromString(value);
+    }
+
+    private static Brush ThemeBrush(string key) => (Brush)Application.Current.Resources[key];
+
+    private Brush StatusBrush(string status)
+    {
+        var color = (_isLightTheme, status) switch
+        {
+            (true, "Healthy") => "#15803D",
+            (true, "Warning") => "#A16207",
+            (true, "Error") => "#C2410C",
+            (true, "Critical") => "#B91C1C",
+            (true, "Unknown" or "Not Tested") => "#475569",
+            (false, "Healthy") => "#22C55E",
+            (false, "Warning") => "#F59E0B",
+            (false, "Error") => "#F97316",
+            (false, "Critical") => "#EF4444",
+            (false, "Unknown" or "Not Tested") => "#94A3B8",
+            _ => _isLightTheme ? "#1D4ED8" : "#60A5FA"
+        };
+        return new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
     }
 
     private void AddActions(string section)
@@ -98,6 +470,7 @@ public partial class MainWindow : Window
             {
                 Content = caption ?? definition.Title,
                 Tag = operation,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
                 ToolTip = definition.Description
             };
@@ -110,7 +483,7 @@ public partial class MainWindow : Window
             ActionPanel.Children.Add(new TextBlock
             {
                 Text = text.ToUpperInvariant(),
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184)),
+                Foreground = ThemeBrush("SecondaryTextBrush"),
                 FontSize = 10,
                 FontWeight = FontWeights.Bold,
                 Margin = new Thickness(2, 12, 0, 5)
@@ -120,9 +493,6 @@ public partial class MainWindow : Window
         switch (section)
         {
             case "Dashboard":
-                Add("Dashboard", "Refresh live system summary");
-                Add("Diagnostics", "Run basic Windows health scan");
-                Add("Universal", "Run full system analysis", new PowerShellPayload());
                 break;
             case "Universal Diagnostics":
                 Add("Universal", "Full System Analysis", NewSymptomsPayload());
@@ -188,7 +558,7 @@ public partial class MainWindow : Window
                 AddReportButtons();
                 break;
             case "History":
-                ActionPanel.Children.Add(new TextBlock { Text = "Recent local operations", Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(203, 213, 225)), Margin = new Thickness(2, 5, 0, 8) });
+                ActionPanel.Children.Add(new TextBlock { Text = "Recent local operations", Foreground = ThemeBrush("SecondaryTextBrush"), Margin = new Thickness(2, 5, 0, 8) });
                 AddLocalAction("Refresh history", LoadHistoryAsync);
                 break;
             case "Settings":
@@ -196,13 +566,14 @@ public partial class MainWindow : Window
                 {
                     Text = $"Version: 0.2.0\nRuntime: .NET 10 WPF, self-contained x64\nPowerShell: {_engine.EngineVersion}\nElevated: {_isAdministrator}\nDatabase: %LOCALAPPDATA%\\WinFixPro\\0.2\\History\\WinFixPro.db\nModules: embedded in application and integrity-checked at launch\nTelemetry: disabled",
                     TextWrapping = TextWrapping.Wrap,
-                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(203, 213, 225)),
+                    Foreground = ThemeBrush("PrimaryTextBrush"),
                     Margin = new Thickness(2, 4, 2, 12)
                 });
+                AddLocalAction(_isLightTheme ? "Switch to dark theme" : "Switch to light theme", ToggleThemeAsync);
                 ActionPanel.Children.Add(new TextBlock
                 {
                     Text = "Diagnostic timeout (minutes)",
-                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184)),
+                    Foreground = ThemeBrush("SecondaryTextBrush"),
                     FontSize = 10,
                     Margin = new Thickness(2, 5, 0, 4)
                 });
@@ -263,7 +634,9 @@ public partial class MainWindow : Window
         {
             Content = definition.Title,
             Tag = repairId,
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(146, 64, 14)),
+            Background = new SolidColorBrush(Color.FromRgb(146, 64, 14)),
+            Foreground = Brushes.White,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             ToolTip = definition.Description
         };
         button.Click += async (_, _) => await ConfirmAndRunRepairAsync(repairId);
@@ -277,7 +650,7 @@ public partial class MainWindow : Window
             ActionPanel.Children.Add(new TextBlock
             {
                 Text = label,
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(148, 163, 184)),
+                Foreground = ThemeBrush("SecondaryTextBrush"),
                 FontSize = 10,
                 Margin = new Thickness(0, 6, 0, 0)
             });
@@ -287,9 +660,9 @@ public partial class MainWindow : Window
                 TextWrapping = TextWrapping.Wrap,
                 MinHeight = minHeight,
                 Margin = new Thickness(0, 3, 0, 5),
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(11, 17, 32)),
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 250, 252)),
-                BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(38, 52, 73)),
+                Background = ThemeBrush("InputBackgroundBrush"),
+                Foreground = ThemeBrush("PrimaryTextBrush"),
+                BorderBrush = ThemeBrush("BorderBrush"),
                 ToolTip = "Do not enter passwords, tokens, personal identifiers or confidential data."
             };
             ActionPanel.Children.Add(input);
@@ -346,9 +719,9 @@ public partial class MainWindow : Window
         {
             ToolTip = "Entry ID from the imported bundle.",
             Margin = new Thickness(0, 3, 0, 5),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(11, 17, 32)),
-            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 250, 252)),
-            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(38, 52, 73))
+            Background = ThemeBrush("InputBackgroundBrush"),
+            Foreground = ThemeBrush("PrimaryTextBrush"),
+            BorderBrush = ThemeBrush("BorderBrush")
         };
         ActionPanel.Children.Add(entryId);
         var reviewNotes = new TextBox
@@ -358,9 +731,9 @@ public partial class MainWindow : Window
             MinHeight = 42,
             ToolTip = "Record the validation performed before approval.",
             Margin = new Thickness(0, 3, 0, 5),
-            Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(11, 17, 32)),
-            Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 250, 252)),
-            BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(38, 52, 73))
+            Background = ThemeBrush("InputBackgroundBrush"),
+            Foreground = ThemeBrush("PrimaryTextBrush"),
+            BorderBrush = ThemeBrush("BorderBrush")
         };
         ActionPanel.Children.Add(reviewNotes);
         AddLocalAction("Approve entry after review", async () =>
@@ -392,7 +765,7 @@ public partial class MainWindow : Window
 
     private void AddLocalAction(string caption, Func<Task> action)
     {
-        var button = new Button { Content = caption, HorizontalContentAlignment = HorizontalAlignment.Left };
+        var button = new Button { Content = caption, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left };
         button.Click += async (_, _) => await action();
         ActionPanel.Children.Add(button);
     }
@@ -474,7 +847,13 @@ public partial class MainWindow : Window
             _lastResult = result;
             ResultText.Text = FormatResult(result);
             StatusText.Text = $"{definition.Title} completed";
-            UpdateDashboardMetrics(result.Json);
+            if (operation is "Diagnostics" or "Universal")
+            {
+                _lastDiagnosticResult = result;
+                _dashboardResult = result;
+                _dashboardFailure = null;
+                RenderDashboard();
+            }
             try
             {
                 var id = await _history.AddAsync(result);
@@ -492,6 +871,12 @@ public partial class MainWindow : Window
         {
             StatusText.Text = "Operation cancelled";
             ResultText.AppendText("\nOperation was cancelled. No success is reported.");
+            if (operation is "Diagnostics" or "Universal")
+            {
+                _dashboardResult = new OperationResult(operation, "Cancelled", "", "Diagnostic cancelled.", DateTimeOffset.Now, DateTimeOffset.Now);
+                _dashboardFailure = "The diagnostic was cancelled before it returned complete evidence.";
+                RenderDashboard();
+            }
         }
         catch (Exception ex)
         {
@@ -499,6 +884,12 @@ public partial class MainWindow : Window
             ResultText.AppendText($"\nERROR: {ex.Message}");
             if (!await WriteErrorLogAsync(operation, ex))
                 ResultText.AppendText("\nWARNING: The error log could not be written.");
+            if (operation is "Diagnostics" or "Universal")
+            {
+                _dashboardResult = new OperationResult(operation, "Failed", "", ex.Message, DateTimeOffset.Now, DateTimeOffset.Now);
+                _dashboardFailure = ex.Message;
+                RenderDashboard();
+            }
             MessageBox.Show(ex.Message, $"{definition.Title} failed", MessageBoxButton.OK, MessageBoxImage.Error);
         }
         finally
@@ -508,29 +899,6 @@ public partial class MainWindow : Window
             _operationCancellation = null;
             OperationProgress.Visibility = Visibility.Collapsed;
             CancelButton.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private void UpdateDashboardMetrics(string json)
-    {
-        try
-        {
-            using var document = JsonDocument.Parse(json);
-            var root = document.RootElement;
-            var summary = root.TryGetProperty("Summary", out var direct) ? direct :
-                root.TryGetProperty("Context", out var context) && context.TryGetProperty("Summary", out var nested) ? nested :
-                root.TryGetProperty("PostRepairSummary", out var post) ? post : default;
-            if (summary.ValueKind != JsonValueKind.Object) return;
-            if (summary.TryGetProperty("CpuLoadPercent", out var cpu)) CpuText.Text = $"{cpu}%";
-            if (summary.TryGetProperty("MemoryUsedPercent", out var memory)) MemoryText.Text = $"{memory}%";
-            if (summary.TryGetProperty("DiskFreeGB", out var disk)) DiskText.Text = $"{disk} GB";
-            if (root.TryGetProperty("Health", out var health) && health.TryGetProperty("Score", out var score))
-                HealthText.Text = score.ToString();
-        }
-        catch (JsonException ex)
-        {
-            StatusText.Text = "Operation completed, but dashboard metrics could not be parsed.";
-            ResultText.AppendText($"\nWARNING: Dashboard metrics were unavailable: {ex.Message}");
         }
     }
 
@@ -549,7 +917,7 @@ public partial class MainWindow : Window
 
     private async Task ExportReportAsync(string format)
     {
-        var result = _lastResult;
+        var result = _lastDiagnosticResult ?? _lastResult;
         if (result is null)
         {
             var records = await _history.GetRecentAsync(1);

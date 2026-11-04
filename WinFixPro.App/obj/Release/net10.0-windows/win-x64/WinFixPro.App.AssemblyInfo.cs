@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Windows Diagnostic & Repair Toolkit")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.2.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.2.0+5baed83a6e58ac99ef7ce3b310382118229678b7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.2.0+7b2372b51a4e22559de0a78fdeb17eebe4f48051")]
 [assembly: System.Reflection.AssemblyProductAttribute("WinFix Pro")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WinFixPro")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.2.0.0")]

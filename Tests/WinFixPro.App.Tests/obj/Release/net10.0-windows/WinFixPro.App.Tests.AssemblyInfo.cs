@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WinFixPro.App.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5baed83a6e58ac99ef7ce3b310382118229678b7")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7b2372b51a4e22559de0a78fdeb17eebe4f48051")]
 [assembly: System.Reflection.AssemblyProductAttribute("WinFixPro.App.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WinFixPro.App.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
