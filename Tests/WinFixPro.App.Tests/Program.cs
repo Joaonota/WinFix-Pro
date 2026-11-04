@@ -95,6 +95,43 @@ var failedLoad = MainWindow.GetAllProblemsPageState(null, "worker unavailable", 
 Check(failedLoad.HasError && failedLoad.Message.Contains("Erro ao carregar", StringComparison.OrdinalIgnoreCase),
     "all-problems page shows a clear loading error state and retry guidance");
 
+OperationResult PresentationResult(string status, string findingStatus, string findingName = "Teste") =>
+    new("Security", "Completed",
+        $$"""{"Status":"{{status}}","Findings":[{"Title":"{{findingName}}","Severity":"{{findingStatus}}","Component":"Defender","Description":"Verificação recolhida.","Evidence":"Estado obtido do sistema.","Recommendation":"Rever o estado."}]}""",
+        "summary", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+
+var healthyPresentation = DiagnosticPresentationBuilder.Build(PresentationResult("Healthy", "Healthy"));
+Check(healthyPresentation.Status == "Healthy" && healthyPresentation.StatusLabel == "Saudável" &&
+      healthyPresentation.Findings.Single().Evidence.Contains("Estado obtido", StringComparison.Ordinal),
+    "visual presentation maps healthy findings and real evidence to typed Portuguese cards");
+Check(DiagnosticPresentationBuilder.Build(PresentationResult("Warning", "Warning")).Status == "Warning",
+    "visual presentation maps warning status");
+Check(DiagnosticPresentationBuilder.Build(PresentationResult("Error", "Error")).Status == "Error",
+    "visual presentation maps error status");
+Check(DiagnosticPresentationBuilder.Build(PresentationResult("Critical", "Critical")).Status == "Critical",
+    "visual presentation maps critical status");
+Check(DiagnosticPresentationBuilder.Build(PresentationResult("Unknown", "Unknown")).Status == "Unknown",
+    "visual presentation preserves unknown status instead of treating it as healthy");
+var emptyPresentation = DiagnosticPresentationBuilder.Build(
+    new OperationResult("Security", "Completed", "{}", "summary", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+Check(emptyPresentation.IsEmpty && emptyPresentation.Status == "Unknown" &&
+      emptyPresentation.Summary.Contains("vazio ou incompleto", StringComparison.OrdinalIgnoreCase),
+    "empty operation result is represented as incomplete and unknown");
+var executionFailurePresentation = DiagnosticPresentationBuilder.Build(
+    new OperationResult("Security", "Failed", "", "worker unavailable", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+    "worker unavailable");
+Check(executionFailurePresentation.IsFailure && executionFailurePresentation.Status == "Error" &&
+      executionFailurePresentation.TechnicalDetails.Contains("worker unavailable", StringComparison.Ordinal),
+    "execution failure is presented as an error while retaining its technical detail");
+var incompletePresentation = DiagnosticPresentationBuilder.Build(
+    new OperationResult("Security", "Completed", "{", "summary", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow));
+Check(incompletePresentation.Status == "Unknown" &&
+      incompletePresentation.Summary.Contains("não pôde ser interpretado", StringComparison.OrdinalIgnoreCase),
+    "malformed or incomplete diagnostic payload is not displayed as a successful result");
+Check(!string.IsNullOrWhiteSpace(healthyPresentation.TechnicalDetails) &&
+      healthyPresentation.TechnicalDetails.Contains("Resultado original (JSON)", StringComparison.Ordinal),
+    "original JSON remains available through the technical details model");
+
 var root = Path.Combine(Path.GetTempPath(), $"WinFixPro.App.Tests.{Guid.NewGuid():N}");
 Directory.CreateDirectory(root);
 try

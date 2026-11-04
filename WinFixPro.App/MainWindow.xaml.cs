@@ -49,6 +49,7 @@ public partial class MainWindow : Window
     private readonly string _dataRoot;
     private readonly PowerShellEngine _engine;
     private readonly HistoryStore _history;
+    private DiagnosticProgressPanel _diagnosticProgressPanel = null!;
     private CancellationTokenSource? _operationCancellation;
     private OperationResult? _lastResult;
     private OperationResult? _lastDiagnosticResult;
@@ -66,6 +67,9 @@ public partial class MainWindow : Window
         Directory.CreateDirectory(_dataRoot);
         _engine = new PowerShellEngine(_dataRoot);
         _history = new HistoryStore(Path.Combine(_dataRoot, "History", "WinFixPro.db"));
+        _diagnosticProgressPanel = new DiagnosticProgressPanel(
+            ThemeBrush("PrimaryTextBrush"), ThemeBrush("SecondaryTextBrush"),
+            ThemeBrush("PanelBrush"), ThemeBrush("BorderBrush"));
 
         AllProblemsSeverityFilter.ItemsSource = new[] { "Todos", "Critical", "Error", "Warning", "Healthy", "Unknown" };
         AllProblemsSeverityFilter.SelectedIndex = 0;
@@ -969,7 +973,7 @@ public partial class MainWindow : Window
         {
             if (!OperationCatalog.TryGet("SaveCase", out _))
             {
-                ResultText.Text = "Case recording is not available.";
+                RenderMessageCard("O registo de casos não está disponível nesta versão.", "Unknown");
                 return;
             }
             var payload = new PowerShellPayload
@@ -1118,13 +1122,15 @@ public partial class MainWindow : Window
         OperationProgress.Value = 0;
         CancelButton.Visibility = definition.IsRepair ? Visibility.Collapsed : Visibility.Visible;
         StatusText.Text = $"Starting {definition.Title}...";
-        ResultText.Clear();
+        ResultPresentationHeading.Text = "A preparar resultados";
+        ResultContentPanel.Children.Clear();
+        _diagnosticProgressPanel.Update(0, "A preparar a análise.");
+        ResultContentPanel.Children.Add(_diagnosticProgressPanel);
         var progress = new Progress<(int Percent, string Message)>(value =>
         {
             OperationProgress.Value = value.Percent;
             StatusText.Text = $"{definition.Title}: {value.Message}";
-            ResultText.AppendText($"[{value.Percent,3}%] {value.Message}\n");
-            ResultText.ScrollToEnd();
+            _diagnosticProgressPanel.Update(value.Percent, value.Message);
         });
         try
         {
@@ -1133,7 +1139,7 @@ public partial class MainWindow : Window
             var timeout = definition.IsRepair ? TimeSpan.FromHours(4) : TimeSpan.FromMinutes(timeoutMinutes);
             var result = await _engine.ExecuteAsync(operation, payload, progress, _operationCancellation.Token, timeout);
             _lastResult = result;
-            ResultText.Text = FormatResult(result);
+            await PresentOperationResultAsync(result);
             StatusText.Text = $"{definition.Title} completed";
             if (operation is "Diagnostics" or "Universal")
             {
@@ -1150,7 +1156,8 @@ public partial class MainWindow : Window
             catch (Exception persistenceError) when (persistenceError is SqliteException or IOException or UnauthorizedAccessException)
             {
                 StatusText.Text = $"{definition.Title} completed; local history could not be fully saved";
-                ResultText.AppendText($"\nWARNING: The operation completed, but local history/audit storage failed: {persistenceError.Message}");
+                AddResultNotice("A operação terminou, mas não foi possível guardar todo o histórico local.",
+                    persistenceError.Message, "Warning");
                 MessageBox.Show($"The operation completed successfully, but its local history could not be fully saved.\n\n{persistenceError.Message}",
                     "History storage warning", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
@@ -1158,10 +1165,12 @@ public partial class MainWindow : Window
         catch (OperationCanceledException)
         {
             StatusText.Text = "Operation cancelled";
-            ResultText.AppendText("\nOperation was cancelled. No success is reported.");
+            var cancelled = new OperationResult(operation, "Cancelled", "", "Diagnostic cancelled.",
+                DateTimeOffset.Now, DateTimeOffset.Now);
+            await PresentOperationResultAsync(cancelled);
             if (operation is "Diagnostics" or "Universal")
             {
-                _dashboardResult = new OperationResult(operation, "Cancelled", "", "Diagnostic cancelled.", DateTimeOffset.Now, DateTimeOffset.Now);
+                _dashboardResult = cancelled;
                 _dashboardFailure = "The diagnostic was cancelled before it returned complete evidence.";
                 RenderDashboard();
             }
@@ -1169,12 +1178,14 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StatusText.Text = $"{definition.Title} failed";
-            ResultText.AppendText($"\nERROR: {ex.Message}");
-            if (!await WriteErrorLogAsync(operation, ex))
-                ResultText.AppendText("\nWARNING: The error log could not be written.");
+            var failed = new OperationResult(operation, "Failed", "", ex.Message, DateTimeOffset.Now, DateTimeOffset.Now);
+            await PresentOperationResultAsync(failed, ex.Message);
+            var errorLogged = await WriteErrorLogAsync(operation, ex);
+            if (!errorLogged)
+                AddResultNotice("Não foi possível guardar o registo técnico do erro.", null, "Warning");
             if (operation is "Diagnostics" or "Universal")
             {
-                _dashboardResult = new OperationResult(operation, "Failed", "", ex.Message, DateTimeOffset.Now, DateTimeOffset.Now);
+                _dashboardResult = failed;
                 _dashboardFailure = ex.Message;
                 RenderDashboard();
             }
@@ -1187,20 +1198,160 @@ public partial class MainWindow : Window
             _operationCancellation = null;
             OperationProgress.Visibility = Visibility.Collapsed;
             CancelButton.Visibility = Visibility.Collapsed;
+            _diagnosticProgressPanel.Visibility = Visibility.Collapsed;
         }
     }
 
-    private static string FormatResult(OperationResult result)
+    private async Task PresentOperationResultAsync(OperationResult result, string? failure = null)
     {
-        var builder = new StringBuilder();
-        builder.AppendLine(result.Summary);
-        builder.AppendLine($"Operation: {result.Operation}");
-        builder.AppendLine($"Status: {result.Status}");
-        builder.AppendLine($"Started: {result.StartedAt:O}");
-        builder.AppendLine($"Finished: {result.FinishedAt:O}");
-        builder.AppendLine(new string('-', 72));
-        builder.Append(result.Json);
-        return builder.ToString();
+        var presentation = await Task.Run(() => DiagnosticPresentationBuilder.Build(result, failure));
+        RenderDiagnosticPresentation(presentation);
+    }
+
+    private void RenderDiagnosticPresentation(DiagnosticResultPresentation presentation)
+    {
+        _diagnosticProgressPanel.Visibility = Visibility.Collapsed;
+        ResultContentPanel.Children.Clear();
+        ResultPresentationHeading.Text = presentation.Title;
+
+        var summaryFinding = new DiagnosticFindingPresentation(
+            presentation.Title,
+            presentation.Status,
+            presentation.StatusLabel,
+            presentation.Title,
+            presentation.Summary,
+            presentation.CompletedAt is { } completedAt
+                ? $"Concluído em {completedAt.ToLocalTime():g}."
+                : "Não existe uma data de conclusão disponível.",
+            "Não inferida para além dos dados recolhidos.",
+            presentation.Status is "Warning" or "Error" or "Critical"
+                ? "O resultado requer atenção conforme indicado pelas verificações realizadas."
+                : presentation.Status == "Unknown"
+                    ? "O impacto permanece desconhecido até existirem dados suficientes."
+                    : "Não foi indicado impacto adverso nas verificações realizadas.",
+            presentation.IsFailure
+                ? "Reveja os detalhes técnicos e tente novamente."
+                : "Consulte os resultados individuais e siga as recomendações disponíveis.",
+            presentation.IsFailure ? "Executar novamente" : "Rever recomendações");
+        ResultContentPanel.Children.Add(CreatePresentationCard(summaryFinding));
+
+        if (presentation.Metrics.Count > 0)
+        {
+            var metricsCard = new Border
+            {
+                Background = ThemeBrush("PanelBrush"),
+                BorderBrush = ThemeBrush("BorderBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            var metricsContent = new StackPanel();
+            metricsContent.Children.Add(new TextBlock
+            {
+                Text = "Valores recolhidos",
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 0, 8)
+            });
+            var metrics = new WrapPanel();
+            foreach (var metric in presentation.Metrics)
+            {
+                var metricCard = new Border
+                {
+                    Background = ThemeBrush("CardBrush"),
+                    BorderBrush = ThemeBrush("BorderBrush"),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(10, 7, 10, 7),
+                    Margin = new Thickness(0, 0, 8, 8),
+                    MinWidth = 120
+                };
+                var metricContent = new StackPanel();
+                metricContent.Children.Add(new TextBlock
+                {
+                    Text = metric.Name,
+                    Foreground = ThemeBrush("SecondaryTextBrush"),
+                    FontSize = 9,
+                    TextWrapping = TextWrapping.Wrap
+                });
+                metricContent.Children.Add(new TextBlock
+                {
+                    Text = metric.Value,
+                    FontWeight = FontWeights.SemiBold,
+                    FontSize = 15,
+                    Margin = new Thickness(0, 3, 0, 0)
+                });
+                metricCard.Child = metricContent;
+                metrics.Children.Add(metricCard);
+            }
+            metricsContent.Children.Add(metrics);
+            metricsCard.Child = metricsContent;
+            ResultContentPanel.Children.Add(metricsCard);
+        }
+
+        if (presentation.IsEmpty)
+        {
+            var empty = new Border
+            {
+                Background = ThemeBrush("CardBrush"),
+                BorderBrush = ThemeBrush("BorderBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 10),
+                Child = new TextBlock
+                {
+                    Text = presentation.IsFailure
+                        ? "Não foi possível carregar os resultados. Consulte os detalhes técnicos e tente novamente."
+                        : "O resultado não contém dados suficientes para apresentar verificações individuais.",
+                    Foreground = ThemeBrush("SecondaryTextBrush"),
+                    TextWrapping = TextWrapping.Wrap
+                }
+            };
+            ResultContentPanel.Children.Add(empty);
+        }
+        else
+        {
+            foreach (var finding in presentation.Findings)
+                ResultContentPanel.Children.Add(CreatePresentationCard(finding));
+        }
+
+        ResultContentPanel.Children.Add(new TechnicalDetailsPanel(
+            presentation.TechnicalDetails,
+            ThemeBrush("PrimaryTextBrush"),
+            ThemeBrush("InputBackgroundBrush"),
+            ThemeBrush("BorderBrush")));
+    }
+
+    private DiagnosticResultCard CreatePresentationCard(DiagnosticFindingPresentation finding) =>
+        new(finding, StatusBrush(finding.Status), ThemeBrush("PrimaryTextBrush"),
+            ThemeBrush("SecondaryTextBrush"), ThemeBrush("PanelBrush"), ThemeBrush("BorderBrush"));
+
+    private void RenderMessageCard(string message, string status)
+    {
+        _diagnosticProgressPanel.Visibility = Visibility.Collapsed;
+        ResultContentPanel.Children.Clear();
+        ResultPresentationHeading.Text = "Informação";
+        var finding = new DiagnosticFindingPresentation(
+            "Estado da operação", status, DiagnosticStatusConverter.ToLabel(status), "WinFix Pro",
+            message, "", "Não aplicável.", "Não aplicável.", message, message);
+        ResultContentPanel.Children.Add(CreatePresentationCard(finding));
+    }
+
+    private void AddResultNotice(string message, string? technicalDetails, string status)
+    {
+        var finding = new DiagnosticFindingPresentation(
+            "Aviso", status, DiagnosticStatusConverter.ToLabel(status), "Histórico local",
+            message, "", "Não determinada.", "O resultado principal da operação não foi alterado.",
+            "Pode continuar a consultar os resultados apresentados.", "Ver detalhes técnicos se necessário");
+        ResultContentPanel.Children.Add(CreatePresentationCard(finding));
+        if (!string.IsNullOrWhiteSpace(technicalDetails))
+            ResultContentPanel.Children.Add(new TechnicalDetailsPanel(
+                technicalDetails,
+                ThemeBrush("PrimaryTextBrush"),
+                ThemeBrush("InputBackgroundBrush"),
+                ThemeBrush("BorderBrush")));
     }
 
     private async Task ExportReportAsync(string format)
@@ -1227,15 +1378,61 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) != true) return;
         await ReportFormatter.WriteAsync(dialog.FileName, result, format);
         StatusText.Text = $"Report saved: {dialog.FileName}";
-        ResultText.AppendText($"\nReport exported: {dialog.FileName}");
     }
 
     private async Task LoadHistoryAsync()
     {
         var records = await _history.GetRecentAsync();
-        ResultText.Text = records.Count == 0
-            ? "No local operation history is recorded."
-            : string.Join(Environment.NewLine, records.Select(r => $"{r.Id} | {r.CreatedAt:O} | {r.Operation} | {r.Status} | {r.Summary}"));
+        ResultContentPanel.Children.Clear();
+        ResultPresentationHeading.Text = "Histórico de operações";
+        if (records.Count == 0)
+        {
+            RenderMessageCard("Ainda não existem operações guardadas no histórico local.", "Unknown");
+            return;
+        }
+
+        foreach (var record in records)
+        {
+            var historyCard = new Border
+            {
+                Background = ThemeBrush("PanelBrush"),
+                BorderBrush = StatusBrush(DiagnosticStatusConverter.Normalize(record.Status)),
+                BorderThickness = new Thickness(2, 0, 0, 0),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            var content = new StackPanel();
+            content.Children.Add(new TextBlock
+            {
+                Text = DiagnosticPresentationBuilder.OperationTitle(record.Operation),
+                FontWeight = FontWeights.SemiBold
+            });
+            content.Children.Add(new TextBlock
+            {
+                Text = $"{DiagnosticStatusConverter.ToLabel(record.Status)} · {record.CreatedAt.ToLocalTime():g}",
+                Foreground = ThemeBrush("SecondaryTextBrush"),
+                FontSize = 10,
+                Margin = new Thickness(0, 3, 0, 0)
+            });
+            content.Children.Add(new TextBlock
+            {
+                Text = record.Summary,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 5, 0, 6)
+            });
+            var open = new Button { Content = "Ver resultados", HorizontalAlignment = HorizontalAlignment.Left };
+            open.Click += async (_, _) =>
+            {
+                _lastResult = new OperationResult(record.Operation, record.Status, record.Json,
+                    record.Summary, record.CreatedAt, record.CreatedAt);
+                await PresentOperationResultAsync(_lastResult);
+                StatusText.Text = "Resultado carregado do histórico";
+            };
+            content.Children.Add(open);
+            historyCard.Child = content;
+            ResultContentPanel.Children.Add(historyCard);
+        }
         StatusText.Text = $"{records.Count} history entries";
     }
 
@@ -1244,12 +1441,12 @@ public partial class MainWindow : Window
         var records = await _history.GetRecentAsync(1);
         if (records.Count == 0)
         {
-            ResultText.Text = "No local operation history is recorded.";
+            RenderMessageCard("Ainda não existem operações guardadas no histórico local.", "Unknown");
             return;
         }
         var item = records[0];
         _lastResult = new OperationResult(item.Operation, item.Status, item.Json, item.Summary, item.CreatedAt, item.CreatedAt);
-        ResultText.Text = FormatResult(_lastResult);
+        await PresentOperationResultAsync(_lastResult);
         StatusText.Text = "Loaded latest operation";
     }
 

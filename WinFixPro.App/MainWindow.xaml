@@ -209,11 +209,8 @@
                                 <StackPanel x:Name="ActionPanel"/>
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="Resultado da operação" FontSize="13" FontWeight="SemiBold" Margin="2,0,0,6"/>
-                        <TextBox x:Name="ResultText" IsReadOnly="True" AcceptsReturn="True"
-                                 TextWrapping="Wrap" MinHeight="260" VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Disabled" Background="{DynamicResource InputBackgroundBrush}"
-                                 Foreground="{DynamicResource PrimaryTextBrush}" BorderBrush="{DynamicResource BorderBrush}" Padding="12"/>
+                        <TextBlock x:Name="ResultPresentationHeading" Text="Resultados" FontSize="16" FontWeight="SemiBold" Margin="2,4,0,8"/>
+                        <StackPanel x:Name="ResultContentPanel"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

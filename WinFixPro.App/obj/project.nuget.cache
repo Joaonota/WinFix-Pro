@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "tstIp3Ud6Bc=",
+  "dgSpecHash": "uZa0xWY6UJY=",
   "success": true,
   "projectFilePath": "C:\\Users\\jno\\Desktop\\backup dados\\win 11\\cornelderHelpdesk\\WinFix-Pro-0.2\\WinFixPro.App\\WinFixPro.App.csproj",
   "expectedPackageFiles": [
@@ -10,10 +10,20 @@
     "C:\\Users\\jno\\.nuget\\packages\\sqlitepclraw.bundle_e_sqlite3\\2.1.13\\sqlitepclraw.bundle_e_sqlite3.2.1.13.nupkg.sha512",
     "C:\\Users\\jno\\.nuget\\packages\\sqlitepclraw.core\\2.1.13\\sqlitepclraw.core.2.1.13.nupkg.sha512",
     "C:\\Users\\jno\\.nuget\\packages\\sqlitepclraw.lib.e_sqlite3\\2.1.13\\sqlitepclraw.lib.e_sqlite3.2.1.13.nupkg.sha512",
-    "C:\\Users\\jno\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.13\\sqlitepclraw.provider.e_sqlite3.2.1.13.nupkg.sha512",
-    "C:\\Users\\jno\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\10.0.14\\microsoft.netcore.app.runtime.win-x64.10.0.14.nupkg.sha512",
-    "C:\\Users\\jno\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\10.0.14\\microsoft.windowsdesktop.app.runtime.win-x64.10.0.14.nupkg.sha512",
-    "C:\\Users\\jno\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\10.0.14\\microsoft.aspnetcore.app.runtime.win-x64.10.0.14.nupkg.sha512"
+    "C:\\Users\\jno\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\2.1.13\\sqlitepclraw.provider.e_sqlite3.2.1.13.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1603",
+      "level": "Warning",
+      "message": "WinFixPro depends on Microsoft.NET.ILLink.Tasks (>= 10.0.0) but Microsoft.NET.ILLink.Tasks 10.0.0 was not found. Microsoft.NET.ILLink.Tasks 10.0.14 was resolved instead.",
+      "projectPath": "C:\\Users\\jno\\Desktop\\backup dados\\win 11\\cornelderHelpdesk\\WinFix-Pro-0.2\\WinFixPro.App\\WinFixPro.App.csproj",
+      "warningLevel": 1,
+      "filePath": "C:\\Users\\jno\\Desktop\\backup dados\\win 11\\cornelderHelpdesk\\WinFix-Pro-0.2\\WinFixPro.App\\WinFixPro.App.csproj",
+      "libraryId": "Microsoft.NET.ILLink.Tasks",
+      "targetGraphs": [
+        "net10.0-windows7.0"
+      ]
+    }
+  ]
 }
