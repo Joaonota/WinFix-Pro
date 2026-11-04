@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>WinFixPro</AssemblyName>
+    <RootNamespace>WinFixPro</RootNamespace>
+    <Version>0.2.0</Version>
+    <AssemblyVersion>0.2.0.0</AssemblyVersion>
+    <FileVersion>0.2.0.0</FileVersion>
+    <Product>WinFix Pro</Product>
+    <Company>WinFix Pro</Company>
+    <Description>Windows Diagnostic &amp; Repair Toolkit</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\WinFixPro.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\Core\*.psm1" LogicalName="WinFixPro.PowerShell.Core.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\Repairs\*.psm1" LogicalName="WinFixPro.PowerShell.Repairs.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\Rules\Issues.json" LogicalName="WinFixPro.PowerShell.Rules.Issues.json" />
+    <EmbeddedResource Include="..\Profiles\default.json" LogicalName="WinFixPro.PowerShell.Profiles.default.json" />
+    <EmbeddedResource Include="..\Knowledge\knowledge.json" LogicalName="WinFixPro.PowerShell.Knowledge.knowledge.json" />
+    <EmbeddedResource Include="..\Plugins\ExampleDiagnostics.psm1" LogicalName="WinFixPro.PowerShell.Plugins.ExampleDiagnostics.psm1" />
+    <EmbeddedResource Include="..\Plugins\ExampleDiagnostics.json" LogicalName="WinFixPro.PowerShell.Plugins.ExampleDiagnostics.json" />
+    <EmbeddedResource Include="PowerShell\Worker.ps1" LogicalName="WinFixPro.PowerShell.Worker.ps1" />
+  </ItemGroup>
+</Project>
