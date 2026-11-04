@@ -65,6 +65,36 @@ var failed = DashboardHealthAnalyzer.Analyze(
 Check(failed.OverallStatus == "Unknown" && failed.Components.All(component => component.Status == "Unknown"),
     "a failed diagnostic is surfaced and cannot leave stale components classified healthy");
 
+var allProblemsState = MainWindow.GetAllProblemsPageState(null, null, "", "Todos", "Todos");
+Check(!allProblemsState.HasDiagnostic && allProblemsState.Message.Contains("Ainda não existem diagnósticos", StringComparison.OrdinalIgnoreCase),
+    "all-problems page distinguishes no diagnostic from no issue");
+
+var allProblemsJson = """
+    {
+      "Context": {
+        "Summary": { "SystemDrive": "C:" },
+        "Findings": [
+          {"Area":"Storage","Severity":"Critical","Finding":"Low free space","Evidence":"1.2 GB free","Recommendation":"Review disk usage."}
+        ]
+      },
+      "Analysis": {
+        "Status": "Completed",
+        "Hypotheses": [],
+        "RuleFindings": [],
+        "Anomalies": []
+      }
+    }
+    """;
+var actualProblems = MainWindow.GetAllProblemsPageState(
+    new OperationResult("Diagnostics", "Completed", allProblemsJson, "test summary", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow),
+    null, "storage", "Todos", "Todos");
+Check(actualProblems.HasProblems && actualProblems.Problems.Count == 1 && actualProblems.Problems[0].Severity == "Critical",
+    "all-problems page surfaces real findings and search filters by component");
+
+var failedLoad = MainWindow.GetAllProblemsPageState(null, "worker unavailable", "", "Todos", "Todos");
+Check(failedLoad.HasError && failedLoad.Message.Contains("Erro ao carregar", StringComparison.OrdinalIgnoreCase),
+    "all-problems page shows a clear loading error state and retry guidance");
+
 var root = Path.Combine(Path.GetTempPath(), $"WinFixPro.App.Tests.{Guid.NewGuid():N}");
 Directory.CreateDirectory(root);
 try

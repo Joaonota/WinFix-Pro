@@ -4,23 +4,27 @@
              ShutdownMode="OnMainWindowClose"
              Startup="OnStartup">
     <Application.Resources>
-        <SolidColorBrush x:Key="BackgroundBrush" Color="#0B1120" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#111827" />
-        <SolidColorBrush x:Key="CardBrush" Color="#172235" />
-        <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
-        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F8FAFC" />
-        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#94A3B8" />
-        <SolidColorBrush x:Key="InputBackgroundBrush" Color="#0B1120" />
-        <SolidColorBrush x:Key="BorderBrush" Color="#263449" />
-        <SolidColorBrush x:Key="ActionButtonBrush" Color="#263449" />
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#F3F7FB" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="CardBrush" Color="#EEF4FF" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#2563EB" />
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#0F172A" />
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#475569" />
+        <SolidColorBrush x:Key="InputBackgroundBrush" Color="#F8FAFC" />
+        <SolidColorBrush x:Key="BorderBrush" Color="#D7E2F0" />
+        <SolidColorBrush x:Key="ActionButtonBrush" Color="#E2E8F0" />
         <Style TargetType="Button">
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
             <Setter Property="Background" Value="{DynamicResource ActionButtonBrush}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="10,7" />
-            <Setter Property="Margin" Value="0,2,6,2" />
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="Margin" Value="0,2,8,2" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="FontFamily" Value="Segoe UI" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
         <Style TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe UI" />
@@ -30,12 +34,12 @@
             <Setter Property="Background" Value="{DynamicResource InputBackgroundBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
-            <Setter Property="Padding" Value="7,5" />
+            <Setter Property="Padding" Value="8,6" />
         </Style>
         <Style TargetType="ComboBoxItem">
             <Setter Property="Background" Value="{DynamicResource PanelBrush}" />
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
-            <Setter Property="Padding" Value="7,4" />
+            <Setter Property="Padding" Value="8,5" />
         </Style>
     </Application.Resources>
 </Application>

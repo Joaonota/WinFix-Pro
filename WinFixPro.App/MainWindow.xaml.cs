@@ -12,13 +12,38 @@ namespace WinFixPro;
 
 public partial class MainWindow : Window
 {
+    private const string AllProblemsSection = "All Problems";
+
     private static readonly string[] Sections =
     [
-        "Dashboard", "Universal Diagnostics", "Hardware Diagnostics", "Performance Analyzer",
+        "Dashboard", "All Problems", "Universal Diagnostics", "Hardware Diagnostics", "Performance Analyzer",
         "Network Diagnostics", "Windows Health", "Windows Update", "Security", "Services",
         "Drivers", "Common Issues", "Knowledge Center", "Unknown Problem Analysis",
         "Repair Center", "Reports", "History", "Settings"
     ];
+
+    private static readonly IReadOnlyDictionary<string, string> SectionDisplayNames =
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["Dashboard"] = "Dashboard",
+            ["All Problems"] = "Todos os problemas",
+            ["Universal Diagnostics"] = "Diagnóstico",
+            ["Hardware Diagnostics"] = "Hardware",
+            ["Performance Analyzer"] = "Desempenho",
+            ["Network Diagnostics"] = "Rede",
+            ["Windows Health"] = "Windows",
+            ["Windows Update"] = "Atualizações",
+            ["Security"] = "Segurança",
+            ["Services"] = "Serviços",
+            ["Drivers"] = "Drivers",
+            ["Common Issues"] = "Problemas comuns",
+            ["Knowledge Center"] = "Centro de conhecimento",
+            ["Unknown Problem Analysis"] = "Problema desconhecido",
+            ["Repair Center"] = "Centro de reparação",
+            ["Reports"] = "Relatórios",
+            ["History"] = "Histórico",
+            ["Settings"] = "Definições"
+        };
 
     private readonly bool _isAdministrator;
     private readonly string _dataRoot;
@@ -42,6 +67,11 @@ public partial class MainWindow : Window
         _engine = new PowerShellEngine(_dataRoot);
         _history = new HistoryStore(Path.Combine(_dataRoot, "History", "WinFixPro.db"));
 
+        AllProblemsSeverityFilter.ItemsSource = new[] { "Todos", "Critical", "Error", "Warning", "Healthy", "Unknown" };
+        AllProblemsSeverityFilter.SelectedIndex = 0;
+        AllProblemsResolutionFilter.ItemsSource = new[] { "Todos", "Pendente", "Reparo disponível", "Sem ação" };
+        AllProblemsResolutionFilter.SelectedIndex = 0;
+
         ComputerNameText.Text = Environment.MachineName;
         PrivilegeText.Text = isAdministrator ? "Administrator" : "Standard user - limited repairs";
         PrivilegeText.Foreground = isAdministrator ? StatusBrush("Healthy") : StatusBrush("Warning");
@@ -56,7 +86,8 @@ public partial class MainWindow : Window
         FullScanButton.Click += async (_, _) => await RunDashboardScanAsync("Universal");
         QuickScanButton.Click += async (_, _) => await RunDashboardScanAsync("Diagnostics");
         AdvancedScanButton.Click += async (_, _) => await RunDashboardScanAsync("Universal", NewDashboardSymptomsPayload());
-        ViewProblemsButton.Click += (_, _) => ProblemsHeading.BringIntoView();
+        AllProblemsButton.Click += (_, _) => Navigate(AllProblemsSection);
+        ViewProblemsButton.Click += (_, _) => Navigate(AllProblemsSection);
         DashboardReportButton.Click += async (_, _) => await ExportReportAsync("HTML");
         Loaded += async (_, _) => await InitializeDashboardAsync();
         Closing += (_, _) => _operationCancellation?.Cancel();
@@ -66,17 +97,20 @@ public partial class MainWindow : Window
     {
         foreach (var section in Sections)
         {
+            var displayName = SectionDisplayNames.TryGetValue(section, out var label) ? label : section;
             var button = new Button
             {
-                Content = section,
+                Content = displayName,
                 Tag = section,
                 HorizontalContentAlignment = HorizontalAlignment.Left,
-                Padding = new Thickness(9, 7, 7, 7),
-                Margin = new Thickness(0, 1, 0, 1),
+                Padding = new Thickness(10, 8, 8, 8),
+                Margin = new Thickness(0, 2, 0, 2),
                 Background = ThemeBrush("PanelBrush"),
-                ToolTip = section
+                ToolTip = section,
+                BorderBrush = ThemeBrush("BorderBrush"),
+                BorderThickness = new Thickness(1)
             };
-            AutomationProperties.SetName(button, section);
+            AutomationProperties.SetName(button, displayName);
             button.Click += (_, _) => Navigate((string)button.Tag);
             NavigationItems.Children.Add(button);
         }
@@ -91,24 +125,31 @@ public partial class MainWindow : Window
             var selected = string.Equals(item.Tag as string, section, StringComparison.Ordinal);
             item.Background = ThemeBrush(selected ? "AccentBrush" : "PanelBrush");
             item.Foreground = selected ? Brushes.White : ThemeBrush("PrimaryTextBrush");
+            item.BorderBrush = selected ? ThemeBrush("AccentBrush") : ThemeBrush("BorderBrush");
         }
-        PageTitle.Text = section;
+        PageTitle.Text = SectionDisplayNames.TryGetValue(section, out var title) ? title : section;
         PageDescription.Text = section switch
         {
-            "Universal Diagnostics" => "Recolha local e análise baseada em evidências; desconhecidos permanecem inconclusivos.",
-            "Unknown Problem Analysis" => "Investigue sintomas com testes não destrutivos e sem pressupor uma solução conhecida.",
-            "Knowledge Center" => "Consulte conhecimento local aprovado e compatível com esta versão do Windows.",
-            "Repair Center" => "Reparações fixas, confirmadas individualmente e executadas em segundo plano.",
-            "History" => "Resultados e operações administrativas guardados na base SQLite local.",
-            "Settings" => "Motor interno, privilégios, armazenamento local e preferências da aplicação.",
-            _ => "Windows Diagnostic & Repair Toolkit"
+            "All Problems" => "Lista consolidada dos problemas reais encontrados pelo diagnóstico local.",
+            "Universal Diagnostics" => "Recolha local e análise baseada em evidências; áreas desconhecidas permanecem inconclusivas.",
+            "Unknown Problem Analysis" => "Investiga sintomas com testes não destrutivos e sem assumir uma causa conhecida.",
+            "Knowledge Center" => "Consulta conhecimento local aprovado e compatível com esta versão do Windows.",
+            "Repair Center" => "Reparações confirmadas são executadas só depois da validação do técnico.",
+            "History" => "Consulta o histórico local das últimas análises e operações realizadas.",
+            "Settings" => "Configurações, registos locais e detalhes do motor de diagnóstico.",
+            _ => "Diagnóstico e reparação do Windows em linguagem simples."
         };
         ActionPanel.Children.Clear();
         DashboardScroll.Visibility = section == "Dashboard" ? Visibility.Visible : Visibility.Collapsed;
         DetailScroll.Visibility = section == "Dashboard" ? Visibility.Collapsed : Visibility.Visible;
-        if (section != "Dashboard")
+        GenericDetailContent.Visibility = section == AllProblemsSection ? Visibility.Collapsed : Visibility.Visible;
+        ActionSection.Visibility = section == AllProblemsSection ? Visibility.Collapsed : Visibility.Visible;
+        AllProblemsPage.Visibility = section == AllProblemsSection ? Visibility.Visible : Visibility.Collapsed;
+        if (section != "Dashboard" && section != AllProblemsSection)
             AddActions(section);
         RenderDashboard();
+        if (section == AllProblemsSection)
+            RenderAllProblemsPage();
     }
 
     private async Task InitializeDashboardAsync()
@@ -163,6 +204,253 @@ public partial class MainWindow : Window
         StatusText.Text = $"Running {OperationCatalog.Operations[operation].Title}...";
         await RunOperationAsync(operation, payload ?? new PowerShellPayload());
     }
+
+    public sealed record AllProblemsEntry(string Title, string Severity, string Area, string Description, DateTimeOffset? DetectedAt, string ResolutionState, string? RepairId);
+
+    public sealed record AllProblemsPageState(string Message, bool HasDiagnostic, bool HasProblems, bool HasError, IReadOnlyList<AllProblemsEntry> Problems, IReadOnlyList<int> SeverityCounts);
+
+    public static AllProblemsPageState GetAllProblemsPageState(OperationResult? result, string? failure, string searchText, string severityFilter, string resolutionFilter)
+    {
+        if (!string.IsNullOrWhiteSpace(failure))
+            return new AllProblemsPageState($"Erro ao carregar os problemas: {failure}", false, false, true, [], [0, 0, 0, 0, 0]);
+
+        if (result is null || result.Status != "Completed")
+            return new AllProblemsPageState("Ainda não existem diagnósticos. Execute uma análise do computador para identificar possíveis problemas.", false, false, false, [], [0, 0, 0, 0, 0]);
+
+        var snapshot = DashboardHealthAnalyzer.Analyze(result, failure);
+        var entries = snapshot.Issues
+            .Select(issue => new AllProblemsEntry(
+                issue.Title,
+                issue.Severity,
+                issue.Area,
+                issue.Description,
+                result.FinishedAt,
+                issue.RepairId is not null ? "Reparo disponível" : (issue.Severity.Equals("Healthy", StringComparison.OrdinalIgnoreCase) ? "Sem ação" : "Pendente"),
+                issue.RepairId))
+            .ToList();
+
+        var filtered = entries
+            .Where(entry =>
+            {
+                var matchesSearch = string.IsNullOrWhiteSpace(searchText) ||
+                    entry.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    entry.Area.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    entry.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase);
+                var matchesSeverity = severityFilter == "Todos" || string.Equals(entry.Severity, severityFilter, StringComparison.OrdinalIgnoreCase);
+                var matchesResolution = resolutionFilter == "Todos" || string.Equals(entry.ResolutionState, resolutionFilter, StringComparison.OrdinalIgnoreCase);
+                return matchesSearch && matchesSeverity && matchesResolution;
+            })
+            .OrderByDescending(entry => SeveritySortPriority(entry.Severity))
+            .ToList();
+
+        var severityCounts = new[]
+        {
+            filtered.Count(item => string.Equals(item.Severity, "Critical", StringComparison.OrdinalIgnoreCase)),
+            filtered.Count(item => string.Equals(item.Severity, "Error", StringComparison.OrdinalIgnoreCase)),
+            filtered.Count(item => string.Equals(item.Severity, "Warning", StringComparison.OrdinalIgnoreCase)),
+            filtered.Count(item => string.Equals(item.Severity, "Healthy", StringComparison.OrdinalIgnoreCase)),
+            filtered.Count(item => string.Equals(item.Severity, "Unknown", StringComparison.OrdinalIgnoreCase))
+        };
+
+        if (filtered.Count == 0)
+        {
+            var message = entries.Count == 0
+                ? "Nenhum problema foi identificado nas análises realizadas."
+                : "Nenhum problema corresponde aos filtros atuais. Ajuste a pesquisa ou os filtros para ver resultados.";
+            return new AllProblemsPageState(message, true, false, false, filtered, severityCounts);
+        }
+
+        return new AllProblemsPageState("Resultados carregados.", true, true, false, filtered, severityCounts);
+    }
+
+    private void AllProblemsSearchBox_TextChanged(object sender, TextChangedEventArgs e) => RenderAllProblemsPage();
+
+    private void AllProblemsSeverityFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => RenderAllProblemsPage();
+
+    private void AllProblemsResolutionFilter_SelectionChanged(object sender, SelectionChangedEventArgs e) => RenderAllProblemsPage();
+
+    private async void AllProblemsRefreshButton_Click(object sender, RoutedEventArgs e)
+    {
+        await RunDashboardScanAsync("Universal");
+    }
+
+    private void RenderAllProblemsPage()
+    {
+        if (AllProblemsList is null || AllProblemsSearchBox is null || AllProblemsSeverityFilter is null || AllProblemsResolutionFilter is null)
+            return;
+
+        var severityFilter = (AllProblemsSeverityFilter.SelectedItem as string) ?? "Todos";
+        var resolutionFilter = (AllProblemsResolutionFilter.SelectedItem as string) ?? "Todos";
+        var state = GetAllProblemsPageState(_dashboardResult, _dashboardFailure, AllProblemsSearchBox.Text.Trim(), severityFilter, resolutionFilter);
+
+        AllProblemsTotalText.Text = state.Problems.Count == 0 ? "0 problemas" : $"{state.Problems.Count} problemas";
+        AllProblemsSummary.Children.Clear();
+
+        foreach (var severity in new[] { "Critical", "Error", "Warning", "Healthy", "Unknown" })
+        {
+            var count = state.SeverityCounts[(GetSeverityIndex(severity))];
+            var border = new Border
+            {
+                Background = ThemeBrush("CardBrush"),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10, 8, 10, 8),
+                Margin = new Thickness(0, 0, 8, 0),
+                BorderBrush = StatusBrush(severity),
+                BorderThickness = new Thickness(1)
+            };
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = severity, FontSize = 9, FontWeight = FontWeights.Bold, Foreground = StatusBrush(severity) });
+            panel.Children.Add(new TextBlock { Text = count.ToString(), FontSize = 20, FontWeight = FontWeights.Bold, Foreground = ThemeBrush("PrimaryTextBrush") });
+            border.Child = panel;
+            AllProblemsSummary.Children.Add(border);
+        }
+
+        if (!state.HasDiagnostic || state.HasError)
+        {
+            AllProblemsList.Items.Clear();
+            AllProblemsEmptyState.Visibility = Visibility.Visible;
+            AllProblemsEmptyText.Text = state.Message;
+            AllProblemsList.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        if (!state.HasProblems)
+        {
+            AllProblemsList.Items.Clear();
+            AllProblemsEmptyState.Visibility = Visibility.Visible;
+            AllProblemsEmptyText.Text = state.Message;
+            AllProblemsList.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AllProblemsEmptyState.Visibility = Visibility.Collapsed;
+        AllProblemsList.Visibility = Visibility.Visible;
+        AllProblemsList.Items.Clear();
+        foreach (var entry in state.Problems)
+        {
+            var item = new Border
+            {
+                Background = ThemeBrush("CardBrush"),
+                BorderBrush = StatusBrush(entry.Severity),
+                BorderThickness = new Thickness(2, 0, 0, 0),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(12),
+                Margin = new Thickness(0, 0, 0, 8),
+                Tag = entry
+            };
+
+            var stack = new StackPanel();
+            var header = new DockPanel();
+            var severityText = new TextBlock
+            {
+                Text = entry.Severity.ToUpperInvariant(),
+                Foreground = StatusBrush(entry.Severity),
+                FontSize = 9,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            DockPanel.SetDock(severityText, Dock.Right);
+            header.Children.Add(severityText);
+            header.Children.Add(new TextBlock
+            {
+                Text = entry.Title,
+                FontWeight = FontWeights.SemiBold,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 12, 0)
+            });
+            stack.Children.Add(header);
+            stack.Children.Add(new TextBlock
+            {
+                Text = $"Componente: {entry.Area}",
+                Foreground = ThemeBrush("SecondaryTextBrush"),
+                FontSize = 10,
+                Margin = new Thickness(0, 4, 0, 0),
+                TextWrapping = TextWrapping.Wrap
+            });
+            stack.Children.Add(new TextBlock
+            {
+                Text = entry.Description,
+                FontSize = 10,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+            stack.Children.Add(new TextBlock
+            {
+                Text = $"Última deteção: {entry.DetectedAt:dd/MM/yyyy HH:mm}",
+                Foreground = ThemeBrush("SecondaryTextBrush"),
+                FontSize = 9,
+                Margin = new Thickness(0, 6, 0, 0)
+            });
+            stack.Children.Add(new TextBlock
+            {
+                Text = $"Estado: {entry.ResolutionState}",
+                Foreground = ThemeBrush("SecondaryTextBrush"),
+                FontSize = 9,
+                Margin = new Thickness(0, 2, 0, 0)
+            });
+
+            var button = new Button
+            {
+                Content = "Ver detalhes",
+                Padding = new Thickness(8, 4, 8, 4),
+                Margin = new Thickness(0, 8, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            button.Click += (_, _) => ShowDetails(entry.Title,
+                $"Gravidade: {entry.Severity}{Environment.NewLine}Componente: {entry.Area}{Environment.NewLine}Descrição: {entry.Description}{Environment.NewLine}{Environment.NewLine}" +
+                $"Última deteção: {entry.DetectedAt:dd/MM/yyyy HH:mm}{Environment.NewLine}{Environment.NewLine}" +
+                $"Estado: {entry.ResolutionState}{Environment.NewLine}{Environment.NewLine}" +
+                $"Possível causa: {ResolvePossibleCause(entry)}{Environment.NewLine}{Environment.NewLine}Recomendação: {ResolveRecommendation(entry)}");
+            stack.Children.Add(button);
+
+            item.Child = stack;
+            AllProblemsList.Items.Add(item);
+        }
+    }
+
+    private static string ResolvePossibleCause(AllProblemsEntry entry)
+    {
+        return entry.Severity switch
+        {
+            "Critical" => "Existe evidência forte de falha funcional ou de risco operacional relevante.",
+            "Error" => "O componente está a reportar erro ou configuração não válida.",
+            "Warning" => "O componente está funcional, mas com sinais de atenção ou degradação.",
+            "Healthy" => "Nenhuma ação necessária com base na evidência atual.",
+            _ => "A causa exata ainda não foi confirmada com dados suficientes."
+        };
+    }
+
+    private static string ResolveRecommendation(AllProblemsEntry entry)
+    {
+        return entry.Severity switch
+        {
+            "Critical" => "Agende a investigação imediata e confirme as reparações recomendadas antes de continuar.",
+            "Error" => "Revise o componente afetado e execute a correção recomendada no diagnóstico.",
+            "Warning" => "Acompanhe o comportamento e confirme se a correção recomendada resolve a evolução do problema.",
+            "Healthy" => "Manter a monitorização e confirmar que o estado continua estável.",
+            _ => "Recolha mais evidência ou execute um diagnóstico complementar para reduzir a incerteza."
+        };
+    }
+
+    private static int SeveritySortPriority(string severity) => severity switch
+    {
+        "Critical" => 5,
+        "Error" => 4,
+        "Warning" => 3,
+        "Healthy" => 2,
+        "Unknown" => 1,
+        _ => 0
+    };
+
+    private static int GetSeverityIndex(string severity) => severity switch
+    {
+        "Critical" => 0,
+        "Error" => 1,
+        "Warning" => 2,
+        "Healthy" => 3,
+        "Unknown" => 4,
+        _ => 4
+    };
 
     private void RenderDashboard()
     {
@@ -220,13 +508,13 @@ public partial class MainWindow : Window
     {
         var border = new Border
         {
-            Width = 286,
+            Width = 280,
             MaxWidth = 380,
             Background = ThemeBrush("CardBrush"),
             BorderBrush = StatusBrush(component.Status),
             BorderThickness = new Thickness(1, 1, 1, 3),
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(10),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(12),
             Margin = new Thickness(0, 0, 8, 8)
         };
         var panel = new StackPanel();
@@ -270,9 +558,9 @@ public partial class MainWindow : Window
             FontSize = 9,
             Margin = new Thickness(0, 5, 0, 4)
         });
-        var details = new Button { Content = "Details", Padding = new Thickness(8, 4, 8, 4), HorizontalAlignment = HorizontalAlignment.Left };
+        var details = new Button { Content = "Ver detalhes", Padding = new Thickness(8, 4, 8, 4), HorizontalAlignment = HorizontalAlignment.Left };
         details.Click += (_, _) => ShowDetails(component.Name, component.Details + Environment.NewLine + Environment.NewLine +
-            $"Recommendation: {component.Recommendation}");
+            $"Recomendação: {component.Recommendation}");
         panel.Children.Add(details);
         border.Child = panel;
         return border;
@@ -285,9 +573,9 @@ public partial class MainWindow : Window
             Background = ThemeBrush("PanelBrush"),
             BorderBrush = StatusBrush(issue.Severity),
             BorderThickness = new Thickness(3, 0, 0, 0),
-            CornerRadius = new CornerRadius(7),
-            Padding = new Thickness(10),
-            Margin = new Thickness(0, 0, 0, 7)
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(12),
+            Margin = new Thickness(0, 0, 0, 8)
         };
         var content = new StackPanel();
         var heading = new DockPanel();
@@ -333,20 +621,20 @@ public partial class MainWindow : Window
             Margin = new Thickness(0, 2, 0, 4)
         });
         var actions = new WrapPanel();
-        var details = new Button { Content = "Details", Padding = new Thickness(8, 4, 8, 4) };
+        var details = new Button { Content = "Ver detalhes", Padding = new Thickness(8, 4, 8, 4) };
         details.Click += (_, _) => ShowDetails(issue.Title,
-            $"Severity: {issue.Severity}{Environment.NewLine}Area: {issue.Area}{Environment.NewLine}" +
-            $"Description: {issue.Description}{Environment.NewLine}{Environment.NewLine}" +
-            $"Evidence: {issue.Evidence}{Environment.NewLine}{Environment.NewLine}" +
-            $"Possible cause: {issue.PossibleCause}{Environment.NewLine}{Environment.NewLine}" +
-            $"Recommended solution: {issue.Recommendation}");
+            $"Gravidade: {issue.Severity}{Environment.NewLine}Componente: {issue.Area}{Environment.NewLine}" +
+            $"Descrição: {issue.Description}{Environment.NewLine}{Environment.NewLine}" +
+            $"Evidência: {issue.Evidence}{Environment.NewLine}{Environment.NewLine}" +
+            $"Possível causa: {issue.PossibleCause}{Environment.NewLine}{Environment.NewLine}" +
+            $"Recomendação: {issue.Recommendation}");
         actions.Children.Add(details);
-        var investigate = new Button { Content = "Investigate", Padding = new Thickness(8, 4, 8, 4) };
+        var investigate = new Button { Content = "Investigar", Padding = new Thickness(8, 4, 8, 4) };
         investigate.Click += (_, _) => NavigateForArea(issue.Area);
         actions.Children.Add(investigate);
         if (issue.RepairId is not null && _isAdministrator)
         {
-            var repair = new Button { Content = $"Review repair: {OperationCatalog.Operations[$"Repair:{issue.RepairId}"].Title}", Padding = new Thickness(8, 4, 8, 4) };
+            var repair = new Button { Content = $"Reparar: {OperationCatalog.Operations[$"Repair:{issue.RepairId}"].Title}", Padding = new Thickness(8, 4, 8, 4) };
             repair.Click += async (_, _) => await ConfirmAndRunRepairAsync(issue.RepairId);
             actions.Children.Add(repair);
         }

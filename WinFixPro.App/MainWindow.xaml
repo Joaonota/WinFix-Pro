@@ -12,29 +12,29 @@
             <ColumnDefinition Width="12"/>
             <ColumnDefinition Width="*" MinWidth="0"/>
         </Grid.ColumnDefinitions>
-        <Border Grid.Column="0" Background="{DynamicResource PanelBrush}" CornerRadius="12" Padding="12">
+        <Border Grid.Column="0" Background="{DynamicResource PanelBrush}" CornerRadius="18" Padding="12">
             <DockPanel LastChildFill="True">
-                <Border DockPanel.Dock="Top" Padding="5,4,5,14">
+                <Border DockPanel.Dock="Top" Padding="8,6,8,14" Margin="0,0,0,8">
                     <StackPanel>
-                        <TextBlock Text="WINFIX PRO" FontSize="21" FontWeight="Bold"/>
-                        <TextBlock Text="Windows diagnostics and repair" FontSize="10"
-                                   Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,3,0,0"/>
+                        <TextBlock Text="WINFIX PRO" FontSize="24" FontWeight="Bold"/>
+                        <TextBlock Text="Diagnóstico do Windows" FontSize="10"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
                 <Border DockPanel.Dock="Bottom" Background="{DynamicResource CardBrush}"
-                        CornerRadius="8" Padding="9" Margin="0,10,0,0">
+                        CornerRadius="14" Padding="12" Margin="0,12,0,0">
                     <StackPanel>
-                        <TextBlock Text="COMPUTER" Foreground="{DynamicResource SecondaryTextBrush}"
+                        <TextBlock Text="COMPUTADOR" Foreground="{DynamicResource SecondaryTextBrush}"
                                    FontSize="9" FontWeight="Bold"/>
-                        <TextBlock x:Name="ComputerNameText" Margin="0,4,0,0" FontWeight="SemiBold"
+                        <TextBlock x:Name="ComputerNameText" Margin="0,6,0,0" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="PrivilegeText" Foreground="#F59E0B" FontSize="10" Margin="0,3,0,0"/>
+                        <TextBlock x:Name="PrivilegeText" Foreground="#F59E0B" FontSize="10" Margin="0,6,0,0"/>
                         <TextBlock x:Name="EngineText" Foreground="{DynamicResource SecondaryTextBrush}"
-                                   FontSize="9" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                   FontSize="9" TextWrapping="Wrap" Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel x:Name="NavigationItems"/>
+                    <StackPanel x:Name="NavigationItems" Margin="0,0,0,6"/>
                 </ScrollViewer>
             </DockPanel>
         </Border>
@@ -45,18 +45,18 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <DockPanel Grid.Row="0" Margin="4,2,4,10" LastChildFill="True">
+            <DockPanel Grid.Row="0" Margin="4,2,4,12" LastChildFill="True">
                 <StackPanel>
-                    <TextBlock x:Name="PageTitle" Text="Dashboard" FontSize="23" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="PageTitle" Text="Dashboard" FontSize="25" FontWeight="SemiBold"/>
                     <TextBlock x:Name="PageDescription" Foreground="{DynamicResource SecondaryTextBrush}"
-                               FontSize="11" Margin="0,2,0,0"/>
+                               FontSize="11" Margin="0,4,0,0"/>
                 </StackPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock x:Name="StatusText" Text="Ready" Foreground="#60A5FA"
+                    <TextBlock x:Name="StatusText" Text="Pronto" Foreground="#2563EB"
                                VerticalAlignment="Center" Margin="0,0,10,0" TextTrimming="CharacterEllipsis"/>
                     <ProgressBar x:Name="OperationProgress" Width="110" Height="8" Minimum="0" Maximum="100"
                                  Visibility="Collapsed" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Button x:Name="CancelButton" Content="Cancel" MinWidth="66" Visibility="Collapsed"/>
+                    <Button x:Name="CancelButton" Content="Cancelar" MinWidth="72" Visibility="Collapsed"/>
                 </StackPanel>
             </DockPanel>
 
@@ -64,25 +64,16 @@
                 <ScrollViewer x:Name="DashboardScroll" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" Visibility="Visible">
                     <StackPanel Margin="4,0,8,12">
-                        <WrapPanel Margin="0,0,0,10">
-                            <Button x:Name="FullScanButton" Content="Full System Scan" MinWidth="138"/>
-                            <Button x:Name="QuickScanButton" Content="Quick Scan" MinWidth="112"/>
-                            <Button x:Name="AdvancedScanButton" Content="Advanced Diagnostics" MinWidth="158"/>
-                            <Button x:Name="ViewProblemsButton" Content="View All Problems" MinWidth="142"/>
-                            <Button x:Name="DashboardReportButton" Content="Generate Report" MinWidth="130"/>
+                        <WrapPanel Margin="0,0,0,12">
+                            <Button x:Name="QuickScanButton" Content="Análise rápida" MinWidth="136" Height="36" Margin="0,0,8,0"/>
+                            <Button x:Name="FullScanButton" Content="Análise completa" MinWidth="136" Height="36" Margin="0,0,8,0"/>
+                            <Button x:Name="AdvancedScanButton" Content="Diagnóstico avançado" MinWidth="136" Height="36" Margin="0,0,8,0"/>
+                            <Button x:Name="AllProblemsButton" Content="All Problems" MinWidth="136" Height="36" Margin="0,0,8,0" ToolTip="Todos os problemas"/>
+                            <Button x:Name="DashboardReportButton" Content="Gerar relatório" MinWidth="136" Height="36" Margin="0,0,8,0"/>
+                            <Button x:Name="ViewProblemsButton" Content="Ver problemas" MinWidth="136" Height="36"/>
                         </WrapPanel>
-                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="8" Padding="10" Margin="0,0,0,10">
-                            <StackPanel>
-                                <TextBlock Text="Optional symptoms for advanced diagnostics"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
-                                <TextBox x:Name="DashboardSymptomsText" Margin="0,5,0,0" MinHeight="32" MaxHeight="76"
-                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                                         BorderBrush="{DynamicResource BorderBrush}" Padding="7"/>
-                            </StackPanel>
-                        </Border>
 
-                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="11" Padding="14" Margin="0,0,0,10">
+                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="14" Padding="14" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="2*"/>
@@ -92,61 +83,71 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                                    <TextBlock Text="SYSTEM HEALTH OVERVIEW" FontSize="10" FontWeight="Bold"
+                                    <TextBlock Text="ESTADO GERAL" FontSize="10" FontWeight="Bold"
                                                Foreground="{DynamicResource SecondaryTextBrush}"/>
-                                    <TextBlock x:Name="DashboardStatusText" Text="Unknown" FontSize="23"
-                                               FontWeight="Bold" Margin="0,5,0,0"/>
-                                    <TextBlock x:Name="DashboardStatusMessage" TextWrapping="Wrap"
-                                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="11"
-                                               Margin="0,2,0,6"/>
-                                    <TextBlock x:Name="DashboardLastDiagnosticText" Text="Last diagnostic: Never"
-                                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
+                                    <TextBlock x:Name="DashboardStatusText" Text="Desconhecido" FontSize="26"
+                                               FontWeight="Bold" Margin="0,8,0,0"/>
+                                    <TextBlock x:Name="DashboardStatusMessage" Text="Aguardando análise do computador."
+                                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10" Margin="0,4,0,0"
+                                               TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="DashboardLastDiagnosticText" Text="Última análise: nunca"
+                                               Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10" Margin="0,6,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="4">
-                                    <TextBlock Text="HEALTH SCORE" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
+                                    <TextBlock Text="PONTUAÇÃO" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
                                     <TextBlock x:Name="DashboardScoreText" Text="--" FontSize="25" FontWeight="Bold"/>
-                                    <TextBlock x:Name="DashboardScoreLabel" Text="Not available" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
+                                    <TextBlock x:Name="DashboardScoreLabel" Text="Não disponível" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Margin="4">
-                                    <TextBlock Text="CRITICAL" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
+                                    <TextBlock Text="CRÍTICOS" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
                                     <TextBlock x:Name="CriticalCountText" Text="0" FontSize="24" FontWeight="Bold" Foreground="#EF4444"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="3" Margin="4">
-                                    <TextBlock Text="ERRORS" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
+                                    <TextBlock Text="ERROS" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
                                     <TextBlock x:Name="ErrorCountText" Text="0" FontSize="24" FontWeight="Bold" Foreground="#F97316"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="4" Margin="4">
-                                    <TextBlock Text="WARNINGS / REPAIRS" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
-                                    <TextBlock x:Name="WarningCountText" Text="0 warnings" FontSize="17" FontWeight="Bold" Foreground="#F59E0B"/>
-                                    <TextBlock x:Name="PendingRepairsText" Text="0 pending repairs" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
+                                    <TextBlock Text="AVISOS" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
+                                    <TextBlock x:Name="WarningCountText" Text="0 avisos" FontSize="17" FontWeight="Bold" Foreground="#F59E0B"/>
+                                    <TextBlock x:Name="PendingRepairsText" Text="0 reparações" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
 
-                        <Border x:Name="DashboardFailureBanner" Background="#3A1820" CornerRadius="8"
-                                Padding="10" Margin="0,0,0,10" Visibility="Collapsed">
-                            <TextBlock x:Name="DashboardFailureText" Foreground="#FCA5A5" TextWrapping="Wrap"/>
+                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="12" Padding="12" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Sintomas para diagnóstico avançado" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
+                                <TextBox x:Name="DashboardSymptomsText" Margin="0,8,0,0" MinHeight="38" MaxHeight="90"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
+                                         BorderBrush="{DynamicResource BorderBrush}" Padding="8" ToolTip="Descreve o problema com palavras simples para ajudar a investigação."/>
+                            </StackPanel>
                         </Border>
 
-                        <TextBlock Text="Component Health" FontSize="16" FontWeight="SemiBold" Margin="2,6,0,7"/>
-                        <WrapPanel x:Name="ComponentPanel" Margin="0,0,0,10"/>
+                        <Border x:Name="DashboardFailureBanner" Background="#FDE7E7" CornerRadius="10"
+                                Padding="12" Margin="0,0,0,12" Visibility="Collapsed">
+                            <TextBlock x:Name="DashboardFailureText" Foreground="#B91C1C" TextWrapping="Wrap"/>
+                        </Border>
 
-                        <DockPanel Margin="2,3,0,7">
-                            <TextBlock x:Name="ProblemsHeading" Text="Problems Detected" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock Text="Estado dos componentes" FontSize="16" FontWeight="SemiBold" Margin="2,0,0,8"/>
+                        <WrapPanel x:Name="ComponentPanel" Margin="0,0,0,12"/>
+
+                        <DockPanel Margin="2,0,0,8">
+                            <TextBlock x:Name="ProblemsHeading" Text="Problemas encontrados" FontSize="16" FontWeight="SemiBold"/>
                             <TextBlock x:Name="ProblemCountLabel" DockPanel.Dock="Right" Foreground="{DynamicResource SecondaryTextBrush}"
                                        VerticalAlignment="Center"/>
                         </DockPanel>
                         <StackPanel x:Name="ProblemsPanel"/>
-                        <Border x:Name="NoProblemsCard" Background="{DynamicResource PanelBrush}" CornerRadius="9"
-                                Padding="12" Margin="0,3,0,8" Visibility="Collapsed">
-                            <TextBlock x:Name="NoProblemsText" Text="No problems were found in the checks that ran."
+                        <Border x:Name="NoProblemsCard" Background="{DynamicResource PanelBrush}" CornerRadius="10"
+                                Padding="12" Margin="0,8,0,8" Visibility="Collapsed">
+                            <TextBlock x:Name="NoProblemsText" Text="Ainda não há problemas identificados."
                                        Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
                         </Border>
 
-                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="9" Padding="10" Margin="0,4,0,8">
+                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="10" Padding="12" Margin="0,0,0,8">
                             <StackPanel>
-                                <TextBlock Text="Score evidence" FontWeight="SemiBold" Margin="0,0,0,5"/>
-                                <TextBlock x:Name="ScoreFactorsText" Text="A score appears after diagnostic evidence is collected."
+                                <TextBlock Text="Evidência da pontuação" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <TextBlock x:Name="ScoreFactorsText" Text="A pontuação aparece após a análise do computador."
                                            Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap" FontSize="10"/>
                             </StackPanel>
                         </Border>
@@ -156,34 +157,68 @@
                 <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed">
                     <StackPanel Margin="4,0,8,12">
-                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="10" Padding="12" Margin="0,0,0,10">
+                        <Border x:Name="AllProblemsPage" Background="{DynamicResource PanelBrush}" CornerRadius="12" Padding="12" Margin="0,0,0,12" Visibility="Collapsed">
                             <StackPanel>
-                                <TextBlock Text="Symptoms, search terms or case notes (optional; do not enter passwords or tokens)"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
-                                <TextBox x:Name="InputText" Margin="0,6,0,0" MinHeight="34" MaxHeight="100"
-                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                                         BorderBrush="{DynamicResource BorderBrush}" Padding="8"/>
+                                <DockPanel LastChildFill="True">
+                                    <TextBlock Text="Todos os problemas" FontSize="20" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="AllProblemsTotalText" DockPanel.Dock="Right" Foreground="{DynamicResource SecondaryTextBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <WrapPanel x:Name="AllProblemsSummary" Margin="0,12,0,0"/>
+
+                                <Grid Margin="0,12,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="180"/>
+                                        <ColumnDefinition Width="180"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="AllProblemsSearchBox" Grid.Column="0" MinHeight="36" Padding="8" Margin="0,0,8,0"
+                                             Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
+                                             BorderBrush="{DynamicResource BorderBrush}" TextChanged="AllProblemsSearchBox_TextChanged"
+                                             ToolTip="Pesquisar por nome ou componente"/>
+                                    <ComboBox x:Name="AllProblemsSeverityFilter" Grid.Column="1" MinHeight="36" Margin="0,0,8,0"
+                                              SelectionChanged="AllProblemsSeverityFilter_SelectionChanged"/>
+                                    <ComboBox x:Name="AllProblemsResolutionFilter" Grid.Column="2" MinHeight="36"
+                                              SelectionChanged="AllProblemsResolutionFilter_SelectionChanged"/>
+                                </Grid>
+
+                                <Button x:Name="AllProblemsRefreshButton" Content="Atualizar resultados" Width="180" Height="34" HorizontalAlignment="Left" Click="AllProblemsRefreshButton_Click"/>
+
+                                <Border x:Name="AllProblemsEmptyState" Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="12" Margin="0,12,0,0" Visibility="Collapsed">
+                                    <TextBlock x:Name="AllProblemsEmptyText" Foreground="{DynamicResource SecondaryTextBrush}" TextWrapping="Wrap"/>
+                                </Border>
+
+                                <ListBox x:Name="AllProblemsList" Margin="0,12,0,0" MaxHeight="520" Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
                             </StackPanel>
                         </Border>
-                        <Border Background="{DynamicResource PanelBrush}" CornerRadius="10" Padding="12" Margin="0,0,0,10">
+
+                        <Border x:Name="GenericDetailContent" Background="{DynamicResource PanelBrush}" CornerRadius="12" Padding="12" Margin="0,0,0,12" Visibility="Visible">
                             <StackPanel>
-                                <TextBlock Text="Available actions" FontSize="11" FontWeight="Bold"
-                                           Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Text="Descreve o problema ou procura uma ajuda específica" Foreground="{DynamicResource SecondaryTextBrush}" FontSize="10"/>
+                                <TextBox x:Name="InputText" Margin="0,8,0,0" MinHeight="40" MaxHeight="100"
+                                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                         Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
+                                         BorderBrush="{DynamicResource BorderBrush}" Padding="8"
+                                         ToolTip="Exemplo: 'As atualizações não aparecem' ou 'O Wi‑Fi está lento'."/>
+                            </StackPanel>
+                        </Border>
+                        <Border x:Name="ActionSection" Background="{DynamicResource PanelBrush}" CornerRadius="12" Padding="12" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Text="Ações disponíveis" FontSize="11" FontWeight="Bold"
+                                           Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,8"/>
                                 <StackPanel x:Name="ActionPanel"/>
                             </StackPanel>
                         </Border>
-                        <TextBlock Text="Operation result" FontSize="13" FontWeight="SemiBold" Margin="2,0,0,6"/>
+                        <TextBlock Text="Resultado da operação" FontSize="13" FontWeight="SemiBold" Margin="2,0,0,6"/>
                         <TextBox x:Name="ResultText" IsReadOnly="True" AcceptsReturn="True"
                                  TextWrapping="Wrap" MinHeight="260" VerticalScrollBarVisibility="Auto"
-                                 HorizontalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="11"
-                                 Background="{DynamicResource InputBackgroundBrush}" Foreground="{DynamicResource PrimaryTextBrush}"
-                                 BorderBrush="{DynamicResource BorderBrush}" Padding="12"/>
+                                 HorizontalScrollBarVisibility="Disabled" Background="{DynamicResource InputBackgroundBrush}"
+                                 Foreground="{DynamicResource PrimaryTextBrush}" BorderBrush="{DynamicResource BorderBrush}" Padding="12"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
             <DockPanel Grid.Row="2" Margin="4,8,4,0">
-                <TextBlock x:Name="FooterText" Text="Local diagnostics | No telemetry"
+                <TextBlock x:Name="FooterText" Text="Diagnóstico local | Sem telemetria"
                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
                 <TextBlock Text="WinFix Pro 0.2.0" DockPanel.Dock="Right"
                            Foreground="{DynamicResource SecondaryTextBrush}" FontSize="9"/>
