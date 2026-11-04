@@ -189,7 +189,6 @@ public static class DashboardHealthAnalyzer
                 var cpu = Get(summary, "CpuLoadPercent").GetDouble();
                 var memory = Get(summary, "MemoryUsedPercent").GetDouble();
                 status = HighestStatus(relevantFindings.Select(item => SeverityStatus(StringValue(Get(item, "Severity")))));
-                if (status == "Not Tested") status = "Healthy";
                 resultText = $"CPU {cpu:0.0}%; memory {memory:0.0}%.";
                 details = $"Point-in-time readings: {resultText}";
                 recommendation = status == "Healthy"
