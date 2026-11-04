@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "rules": [
+    {
+      "id": "system-volume-low-space",
+      "version": "1.0.0",
+      "area": "Storage",
+      "title": "Low free space on the Windows system volume",
+      "description": "Limited free system-volume space can prevent updates, application writes, and normal paging.",
+      "severity": "High",
+      "minWindowsBuild": 0,
+      "maxWindowsBuild": 0,
+      "evidence": [
+        { "path": "Summary.DiskFreeGB", "operator": "LessThan", "value": 10 }
+      ],
+      "recommendation": "Review disk usage and identify safe-to-remove files; do not delete user files automatically."
+    },
+    {
+      "id": "system-memory-pressure",
+      "version": "1.0.0",
+      "area": "Performance",
+      "title": "Sustained high memory pressure",
+      "description": "High observed memory use may contribute to paging and application delays.",
+      "severity": "Medium",
+      "minWindowsBuild": 0,
+      "maxWindowsBuild": 0,
+      "evidence": [
+        { "path": "Summary.MemoryUsedPercent", "operator": "GreaterThanOrEqual", "value": 95 }
+      ],
+      "recommendation": "Collect a time-series sample and inspect memory-heavy processes before considering changes."
+    },
+    {
+      "id": "pnp-device-errors",
+      "version": "1.0.0",
+      "area": "Drivers",
+      "title": "One or more Plug and Play devices report a problem",
+      "description": "Windows device configuration reports a non-zero problem code.",
+      "severity": "Medium",
+      "minWindowsBuild": 0,
+      "maxWindowsBuild": 0,
+      "evidence": [
+        { "path": "Hardware.ProblemDevices.Count", "operator": "GreaterThan", "value": 0 }
+      ],
+      "recommendation": "Inspect the device and its signed driver version in Device Manager; do not install an unverified driver."
+    }
+  ]
+}

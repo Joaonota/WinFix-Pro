@@ -1,0 +1,100 @@
+﻿<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WinFix Pro 0.2" Height="820" Width="1280" MinHeight="700" MinWidth="1000"
+        WindowStartupLocation="CenterScreen" Background="#0B1120" Foreground="#F8FAFC"
+        FontFamily="Segoe UI" ResizeMode="CanResize">
+  <Grid Margin="18">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="235"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Border Grid.Column="0" Background="#111827" CornerRadius="14" Padding="16">
+      <DockPanel LastChildFill="True">
+        <StackPanel DockPanel.Dock="Top">
+          <TextBlock Text="WINFIX PRO" FontSize="23" FontWeight="Bold" Foreground="#F8FAFC"/>
+          <TextBlock Text="Windows Diagnostic &amp; Repair Toolkit" FontSize="10" Foreground="#94A3B8" Margin="0,3,0,20"/>
+          <TextBlock Text="WORKSPACE" FontSize="10" FontWeight="Bold" Foreground="#64748B" Margin="0,0,0,8"/>
+          <TextBlock Text="Overview" Foreground="#F8FAFC" Background="#172235" Padding="10" Margin="0,0,0,5" ToolTip="Resumo do equipamento e resultado das operações"/>
+          <TextBlock Text="Diagnostics" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Hardware" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Performance" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Network" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Services" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Security" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Event Viewer" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Repair Center" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+          <TextBlock Text="Reports" Foreground="#CBD5E1" Padding="10" Margin="0,0,0,3"/>
+        </StackPanel>
+        <Border DockPanel.Dock="Bottom" Background="#172235" CornerRadius="9" Padding="11" Margin="0,18,0,0">
+          <StackPanel><TextBlock Text="SYSTEM" Foreground="#64748B" FontSize="10" FontWeight="Bold"/>
+            <TextBlock x:Name="txtComputer" Text="Computer" Foreground="#F8FAFC" FontWeight="SemiBold" Margin="0,5,0,0"/>
+            <TextBlock x:Name="txtPrivilege" Text="Checking permissions..." Foreground="#F59E0B" FontSize="11" Margin="0,3,0,0"/>
+            <TextBlock x:Name="txtVersion" Text="" Foreground="#94A3B8" FontSize="10" TextWrapping="Wrap" Margin="0,5,0,0"/>
+          </StackPanel>
+        </Border>
+      </DockPanel>
+    </Border>
+    <Grid Grid.Column="2">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="2*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+      <DockPanel Grid.Row="0" Margin="0,0,0,16">
+        <StackPanel><TextBlock Text="Overview" FontSize="25" FontWeight="SemiBold"/><TextBlock Text="Real-time Windows diagnostics and assisted maintenance" Foreground="#94A3B8" FontSize="12" Margin="0,3,0,0"/></StackPanel>
+        <TextBlock x:Name="txtStatus" DockPanel.Dock="Right" Text="Ready" Foreground="#60A5FA" VerticalAlignment="Center" FontSize="12"/>
+      </DockPanel>
+      <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,16">
+        <Border Background="#172235" CornerRadius="12" Padding="16" Margin="0,0,10,0"><StackPanel><TextBlock Text="SYSTEM HEALTH SCORE" Foreground="#94A3B8" FontSize="10" FontWeight="Bold"/><StackPanel Orientation="Horizontal" Margin="0,8,0,0"><TextBlock x:Name="txtHealth" Text="--" FontSize="28" FontWeight="Bold" Foreground="#22C55E"/><TextBlock x:Name="txtHealthRating" Text="Not scanned" Foreground="#94A3B8" VerticalAlignment="Center" Margin="10,4,0,0"/></StackPanel></StackPanel></Border>
+        <Border Background="#172235" CornerRadius="12" Padding="16" Margin="0,0,10,0"><StackPanel><TextBlock Text="LIVE RESOURCE SNAPSHOT" Foreground="#94A3B8" FontSize="10" FontWeight="Bold"/><TextBlock x:Name="txtCpu" Text="CPU --" Foreground="#F8FAFC" Margin="0,7,0,0"/><TextBlock x:Name="txtRam" Text="Memory --" Foreground="#F8FAFC" Margin="0,4,0,0"/><TextBlock x:Name="txtDisk" Text="System drive --" Foreground="#F8FAFC" Margin="0,4,0,0"/></StackPanel></Border>
+        <Border Background="#172235" CornerRadius="12" Padding="16"><StackPanel><TextBlock Text="SYSTEM STATE" Foreground="#94A3B8" FontSize="10" FontWeight="Bold"/><TextBlock x:Name="txtUptime" Text="Uptime --" Foreground="#F8FAFC" Margin="0,7,0,0"/><TextBlock x:Name="txtReboot" Text="Pending reboot --" Foreground="#F8FAFC" Margin="0,4,0,0"/></StackPanel></Border>
+      </UniformGrid>
+      <Border Grid.Row="2" Background="#111827" CornerRadius="12" Padding="14">
+        <TabControl x:Name="tabs" Background="#111827" Foreground="#F8FAFC" BorderThickness="0">
+          <TabItem Header="Diagnostics"><StackPanel Margin="10"><TextBlock Text="System Diagnostics" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Collects Windows, resource, storage, service and recent system event data." Foreground="#94A3B8" Margin="0,5,0,12"/><Button x:Name="btnScan" Content="Run full diagnostics" Width="180" Height="36" HorizontalAlignment="Left" Background="#3B82F6" Foreground="White" BorderThickness="0"/><TextBlock Text="Health score factors are derived from measured findings; unavailable data is not penalized." Foreground="#94A3B8" FontSize="11" Margin="0,12,0,0"/></StackPanel></TabItem>
+          <TabItem Header="Hardware"><StackPanel Margin="10"><TextBlock Text="Hardware inventory" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="CPU, motherboard, BIOS, memory, disk, network adapters and problem devices." Foreground="#94A3B8" Margin="0,5,0,12"/><Button x:Name="btnHardware" Content="Collect hardware inventory" Width="220" Height="36" HorizontalAlignment="Left"/></StackPanel></TabItem>
+          <TabItem Header="Performance"><StackPanel Margin="10"><TextBlock Text="Performance analyzer" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Samples process CPU use and reports memory use. No process is terminated." Foreground="#94A3B8" Margin="0,5,0,12"/><Button x:Name="btnPerformance" Content="Analyze top processes" Width="190" Height="36" HorizontalAlignment="Left"/></StackPanel></TabItem>
+          <TabItem Header="Network"><StackPanel Margin="10"><TextBlock Text="Network diagnostics" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Checks active adapters, IPv4, gateways, DNS lookup and HTTPS reachability. No settings are changed." Foreground="#94A3B8" Margin="0,5,0,12"/><Button x:Name="btnNetwork" Content="Run network tests" Width="170" Height="36" HorizontalAlignment="Left"/></StackPanel></TabItem>
+          <TabItem Header="Services"><StackPanel Margin="10"><TextBlock Text="Windows services" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Read-only inventory of service name, state, startup mode, PID and description. Service state changes are not exposed in this release." Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,5,0,12"/><Button x:Name="btnServices" Content="Refresh service inventory" Width="210" Height="36" HorizontalAlignment="Left"/></StackPanel></TabItem>
+          <TabItem Header="Security"><StackPanel Margin="10"><TextBlock Text="Security status" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Read-only checks for Defender, real-time protection, firewall profiles and UAC. Security controls are never disabled." Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,5,0,12"/><Button x:Name="btnSecurity" Content="Check security status" Width="190" Height="36" HorizontalAlignment="Left"/></StackPanel></TabItem>
+          <TabItem Header="Events"><StackPanel Margin="10"><TextBlock Text="Event analyzer" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Reads recent System warnings, errors and critical events. Security log access is not requested." Foreground="#94A3B8" Margin="0,5,0,12"/><Button x:Name="btnEvents" Content="Analyze last 24 hours" Width="180" Height="36" HorizontalAlignment="Left"/></StackPanel></TabItem>
+          <TabItem Header="Universal Diagnostics">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Margin="10">
+                <TextBlock Text="Universal diagnostics &amp; root-cause analysis" FontSize="17" FontWeight="SemiBold"/>
+                <TextBlock Text="Read-only evidence collection across OS, hardware, performance, network, applications, security, services, updates, startup and user profiles. Symptoms are analyzed without assuming a known error code." Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,5,0,10"/>
+                <TextBlock Text="Reported symptoms (optional; do not include passwords, tokens or personal data)" Foreground="#CBD5E1" FontSize="11"/>
+                <TextBox x:Name="txtSymptoms" Height="48" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="0,4,0,8" Background="#0B1120" Foreground="#F8FAFC" BorderBrush="#263449" Padding="7"/>
+                <CheckBox x:Name="chkPlugins" Content="Run trusted local diagnostic plugins (plugins execute as this user)" Foreground="#F59E0B" Margin="0,0,0,8"/>
+                <Button x:Name="btnUniversal" Content="Full system analysis" Width="180" Height="36" HorizontalAlignment="Left" Background="#3B82F6" Foreground="White" BorderThickness="0"/>
+                <TextBlock Text="CASE INTELLIGENCE — cases are saved locally after basic identity redaction. Knowledge candidates require review, sources and an expiry date." Foreground="#60A5FA" FontWeight="Bold" FontSize="10" Margin="0,14,0,7"/>
+                <TextBlock Text="Case outcome / current state" Foreground="#CBD5E1" FontSize="11"/>
+                <TextBox x:Name="txtCaseOutcome" Height="40" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,4,0,7" Background="#0B1120" Foreground="#F8FAFC" BorderBrush="#263449" Padding="7"/>
+                <TextBlock Text="Tests performed and verification (required to mark resolved)" Foreground="#CBD5E1" FontSize="11"/>
+                <TextBox x:Name="txtCaseTests" Height="40" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,4,0,7" Background="#0B1120" Foreground="#F8FAFC" BorderBrush="#263449" Padding="7"/>
+                <TextBlock Text="Source URLs (one per line; required before approval)" Foreground="#CBD5E1" FontSize="11"/>
+                <TextBox x:Name="txtCaseSources" Height="38" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,4,0,7" Background="#0B1120" Foreground="#F8FAFC" BorderBrush="#263449" Padding="7"/>
+                <TextBlock Text="Knowledge review notes" Foreground="#CBD5E1" FontSize="11"/>
+                <TextBox x:Name="txtReviewNotes" Height="34" AcceptsReturn="True" TextWrapping="Wrap" Margin="0,4,0,7" Background="#0B1120" Foreground="#F8FAFC" BorderBrush="#263449" Padding="7"/>
+                <ComboBox x:Name="cmbCaseStatus" Width="190" HorizontalAlignment="Left" SelectedValuePath="Tag" SelectedIndex="0" Margin="0,0,0,7">
+                  <ComboBoxItem Content="Open" Tag="Open"/><ComboBoxItem Content="Investigating" Tag="Investigating"/><ComboBoxItem Content="Resolved" Tag="Resolved"/><ComboBoxItem Content="Inconclusive" Tag="Inconclusive"/>
+                </ComboBox>
+                <StackPanel Orientation="Horizontal">
+                  <Button x:Name="btnRecordCase" Content="Record case" Width="130" Height="34" Margin="0,0,8,0"/>
+                  <Button x:Name="btnPromoteCase" Content="Propose knowledge candidate" Width="210" Height="34" Margin="0,0,8,0"/>
+                  <Button x:Name="btnApproveCase" Content="Review / approve candidate" Width="200" Height="34"/>
+                </StackPanel>
+                <Button x:Name="btnImportKnowledge" Content="Import local knowledge bundle (JSON)" Width="260" Height="34" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                <TextBlock x:Name="txtCaseId" Text="No case recorded this session." Foreground="#94A3B8" FontSize="10" TextWrapping="Wrap" Margin="0,8,0,0"/>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+          <TabItem Header="Repair Center"><StackPanel Margin="10"><TextBlock Text="Repair Center" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Every operation requires confirmation. Simulation is enabled by default." Foreground="#94A3B8" Margin="0,5,0,12"/><CheckBox x:Name="chkSimulation" Content="Simulate repairs (no changes)" IsChecked="True" Foreground="#F8FAFC" Margin="0,0,0,10" ToolTip="When selected, repair actions are simulated and do not modify Windows."/><ComboBox x:Name="cmbRepair" Width="300" HorizontalAlignment="Left" SelectedValuePath="Tag" SelectedIndex="0"><ComboBoxItem Content="SFC /scannow — system files" Tag="SfcScan"/><ComboBoxItem Content="DISM RestoreHealth — component store" Tag="DismRestore"/><ComboBoxItem Content="Flush local DNS cache" Tag="FlushDns"/></ComboBox><Button x:Name="btnRepair" Content="Review and run repair" Width="190" Height="36" HorizontalAlignment="Left" Margin="0,10,0,0" Background="#F59E0B" Foreground="#111827" BorderThickness="0"/><TextBlock Text="SFC/DISM require elevation. No cleanup of user files, policy changes, network resets or automatic process termination are offered." Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,12,0,0"/></StackPanel></TabItem>
+          <TabItem Header="Reports"><StackPanel Margin="10"><TextBlock Text="Reports and history" FontSize="17" FontWeight="SemiBold"/><TextBlock Text="Exports the most recent full diagnostic. Diagnostic and repair history is recorded locally." Foreground="#94A3B8" Margin="0,5,0,12"/><ComboBox x:Name="cmbFormat" Width="130" HorizontalAlignment="Left" SelectedIndex="0" SelectedValuePath="Tag"><ComboBoxItem Content="HTML" Tag="HTML"/><ComboBoxItem Content="JSON" Tag="JSON"/><ComboBoxItem Content="CSV" Tag="CSV"/><ComboBoxItem Content="TXT" Tag="TXT"/></ComboBox><Button x:Name="btnExport" Content="Export latest diagnosis" Width="190" Height="36" HorizontalAlignment="Left" Margin="0,10,0,0"/></StackPanel></TabItem>
+        </TabControl>
+      </Border>
+      <Border Grid.Row="3" Background="#111827" CornerRadius="12" Padding="12" Margin="0,12,0,0">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Text="OPERATION OUTPUT" Foreground="#94A3B8" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
+          <TextBox x:Name="txtOutput" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                   FontFamily="Consolas" FontSize="11" Background="#0B1120" Foreground="#CBD5E1"
+                   BorderBrush="#263449" Padding="9"/>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "name": "Default",
+  "description": "Read-only broad system inventory and diagnostic profile.",
+  "enabledAreas": [
+    "OperatingSystem",
+    "Hardware",
+    "Performance",
+    "Network",
+    "Applications",
+    "Security",
+    "Services",
+    "UserEnvironment"
+  ],
+  "eventLookbackDays": 7,
+  "maxEventsPerLog": 250
+}
